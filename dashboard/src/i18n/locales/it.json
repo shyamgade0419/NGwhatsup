@@ -6,7 +6,7 @@
     }
   },
   "common": {
-    "appName": "OpenWA",
+    "appName": "NG by NovaGade",
     "updateAvailable": "v{{version}} disponibile",
     "loading": "Caricamento...",
     "cancel": "Annulla",
@@ -373,10 +373,7 @@
     "connecting": "Connessione in corso...",
     "invalidKey": "Chiave API non valida",
     "connectionError": "Impossibile connettersi al server. Riprova.",
-    "help": "Serve aiuto?",
-    "viewDocs": "Visualizza la documentazione",
-    "footer": "Fatto con il ❤️ da Yudhi Armyndharis e dalla Community di OpenWA",
-    "version": "v{{version}} · {{date}}"
+    "footer": "Con tecnologia NG"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1036,7 +1033,7 @@
     "zeroMessages": "Zero messaggi inviati",
     "noSession": {
       "title": "Nessuna sessione WhatsApp connessa.",
-      "desc": "Per verificare i numeri di telefono, OpenWA richiede almeno una sessione autenticata.",
+      "desc": "Per verificare i numeri di telefono, NG richiede almeno una sessione autenticata.",
       "goToSessions": "Vai alle sessioni"
     },
     "tabs": {
@@ -1163,7 +1160,7 @@
       "postgres": "PostgreSQL",
       "postgresDesc": "Database pronto per la produzione",
       "useBuiltIn": "Usa Container PostgreSQL Integrato",
-      "builtInDesc": "OpenWA gestirà un container PostgreSQL per te",
+      "builtInDesc": "NG gestirà un container PostgreSQL per te",
       "dbName": "Nome Database",
       "schema": "Schema",
       "schemaDesc": "Schema PostgreSQL (ignorato per SQLite). Predefinito 'public'. Lo schema deve esistere già.",
@@ -1198,7 +1195,7 @@
       "enable": "Abilita Redis",
       "enableDesc": "Usato per la cache, le code BullMQ, i contatori di rate limiting e la distribuzione WebSocket multi-nodo",
       "useBuiltIn": "Usa Container Redis Integrato",
-      "builtInDesc": "OpenWA gestirà un container Redis per te",
+      "builtInDesc": "NG gestirà un container Redis per te",
       "queueTitle": "Abilita Sistema di Code BullMQ",
       "queueDesc": "Usa le code di messaggi per una consegna affidabile di messaggi e webhook",
       "statsTitle": "Statistiche delle Code",
@@ -1220,7 +1217,7 @@
       "s3": "Amazon S3",
       "s3Desc": "Archiviazione Cloud (compatibile con S3)",
       "useBuiltIn": "Usa Container MinIO Integrato",
-      "builtInDesc": "OpenWA gestirà un container MinIO (compatibile con S3) per te",
+      "builtInDesc": "NG gestirà un container MinIO (compatibile con S3) per te",
       "storagePath": "Percorso Archiviazione",
       "bucket": "Nome Bucket",
       "region": "Regione",
@@ -1276,7 +1273,7 @@
       "importFailed": "Impossibile importare i dati",
       "importOk": "Dati importati",
       "importConfirm": "L'importazione SOSTITUIRÀ tutti i dati attuali con il backup ({{rows}} righe). Questa operazione non può essere annullata. Continuare?",
-      "invalidFile": "Questo file non è un backup dati valido di OpenWA.",
+      "invalidFile": "Questo file non è un backup dati valido di NG.",
       "importTooLarge": "Il backup supera il limite della richiesta. Aumenta BODY_SIZE_LIMIT sul server e riprova."
     },
     "statusLoadError": "Impossibile caricare lo stato attuale dell'infrastruttura. Aggiorna per riprovare.",
@@ -1310,7 +1307,7 @@
     "uninstallConfirm": "Disinstallare \"{{name}}\"? Questa operazione ne elimina i file.",
     "empty": {
       "title": "Nessun Plugin Trovato",
-      "description": "Installa i plugin per estendere le funzionalità di OpenWA"
+      "description": "Installa i plugin per estendere le funzionalità di NG"
     },
     "config": {
       "title": "Configura {{name}}",
@@ -1333,7 +1330,7 @@
       "trustWarning": "I plugin vengono eseguiti con i pieni privilegi del processo del gateway — la sandbox contiene gli arresti anomali, non il codice dannoso. Installa solo plugin di cui ti fidi.",
       "choose": "Scegli un file .zip…",
       "tooLarge": "Il file supera il limite di 5 MB.",
-      "catalogHint": "Installa direttamente dal catalogo dei plugin di OpenWA. Lo .zip viene recuperato lato server tramite la protezione SSRF, quindi validato ed eseguito in sandbox.",
+      "catalogHint": "Installa direttamente dal catalogo dei plugin di NG. Lo .zip viene recuperato lato server tramite la protezione SSRF, quindi validato ed eseguito in sandbox.",
       "catalogTeaser": "Cerchi plugin?",
       "catalogTeaserSuffix": "sfoglia il marketplace ufficiale.",
       "tabCatalog": "Catalogo",

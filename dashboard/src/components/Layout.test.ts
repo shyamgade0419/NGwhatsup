@@ -332,7 +332,8 @@ test('an admin key scoped to sessions is not offered the pages that refuse it', 
   assert.equal(screen.queryByRole('link', { name: 'Plugins' }) === null, true);
   // The audit read is filtered to the key's sessions, not refused.
   assert.ok(screen.getByRole('link', { name: 'Logs' }));
-  await rtl.waitFor(() => assert.ok(requested.some(url => url.includes('/health'))));
+  // Give the layout's effects time to run before asserting that none of them asked for the refused update check.
+  await new Promise(resolve => setTimeout(resolve, 50));
   assert.equal(
     requested.some(url => url.includes('/infra/update-check')),
     false,

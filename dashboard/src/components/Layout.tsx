@@ -28,7 +28,7 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { useRole, type UserRole } from '../hooks/useRole';
 import { languageOptions, resolveSupportedLanguage, rtlLanguages, type SupportedLanguage } from '../i18n';
-import { healthApi, infraApi } from '../services/api';
+import { infraApi } from '../services/api';
 import { isComposingKey } from '../utils/composition';
 import './Layout.css';
 
@@ -86,9 +86,6 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
   // Collapsing is a desktop preference: the phone drawer has no collapse control, so it never renders collapsed,
   // and the flag stays as it was for when the window widens again.
   const collapsed = isCollapsed && !isMobile;
-  // Show the build-time version immediately, then replace it with the live running version from the
-  // backend so a stale-built bundle can't display the wrong number. Falls back silently on error.
-  const [version, setVersion] = useState(__APP_VERSION__);
   // A newer published release, shown to admins as a link to its notes. The route is ADMIN-only, refuses a
   // session-scoped key, and answers quietly when GitHub is unreachable or the check is turned off.
   const [update, setUpdate] = useState<{ latest: string; url: string } | null>(null);
@@ -104,21 +101,6 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
     };
     phone.addEventListener('change', handleChange);
     return () => phone.removeEventListener('change', handleChange);
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    healthApi
-      .check()
-      .then(info => {
-        if (active && info?.version) setVersion(info.version);
-      })
-      .catch(() => {
-        /* keep the build-time fallback */
-      });
-    return () => {
-      active = false;
-    };
   }, []);
 
   useEffect(() => {
@@ -217,7 +199,7 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
             {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           <div className="mobile-brand">
-            <img src="/openwa_logo.webp" alt="OpenWA" className="sidebar-logo" />
+            <img src="/ng-logo.png" alt="NG by NovaGade" className="sidebar-logo" />
             <span className="brand-name">{t('common.appName')}</span>
           </div>
           <div style={{ width: 40 }} />
@@ -232,11 +214,11 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
         inert={isMobile && !isMobileOpen}
       >
         <div className="sidebar-header">
-          <img src="/openwa_logo.webp" alt="OpenWA" className="sidebar-logo" />
+          <img src="/ng-logo.png" alt="NG by NovaGade" className="sidebar-logo" />
           {!collapsed && (
             <div className="sidebar-brand">
               <span className="brand-name">{t('common.appName')}</span>
-              <span className="brand-version">v{version}</span>
+              {/* the gateway version is not shown: this dashboard carries only the NG by NovaGade name */}
               {update && (
                 <a
                   className="brand-update"
