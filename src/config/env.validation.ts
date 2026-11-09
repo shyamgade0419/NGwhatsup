@@ -723,6 +723,8 @@ export function validateEnv(config: EnvConfig): EnvConfig {
     'SESSION_PROXY_URL_FETCH',
     // `=== 'false'`: a typo leaves the outbound release check on when the operator asked for it off.
     'UPDATE_CHECK_ENABLED',
+    // `=== 'true'`: a typo would leave bulk sends and status posts ON when the operator meant them off.
+    'DISABLE_BROADCAST_SENDING',
     // Engine behaviour flags: a typo leaves full-history sync off, or leaves the account marked
     // online on connect (#871 — it suppresses notifications on the operator's own phone).
     'BAILEYS_SYNC_FULL_HISTORY',

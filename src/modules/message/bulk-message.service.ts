@@ -11,6 +11,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { createLogger } from '../../common/services/logger.service';
+import { assertBroadcastSendingAllowed } from '../../common/security/broadcast-guard';
 import { ShutdownService } from '../../common/services/shutdown.service';
 import { ConfigService } from '@nestjs/config';
 import { captureSessionWrites, SessionWriteScope } from '../../common/utils/session-write-scope';
@@ -296,6 +297,7 @@ export class BulkMessageService implements OnModuleInit, OnApplicationBootstrap,
   }
 
   async createBatch(sessionId: string, dto: SendBulkMessageDto): Promise<MessageBatch> {
+    assertBroadcastSendingAllowed('Bulk sending');
     // Validate the session is started (guard only — the batch is sent later, by drainBatch).
     this.engines.require(sessionId, () => new BadRequestException(`Session '${sessionId}' is not active`));
 

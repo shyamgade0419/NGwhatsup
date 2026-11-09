@@ -9,6 +9,7 @@ import { HookManager, applySendingGate } from '../../core/hooks';
 import { SendPacingService, countsTowardSendBreaker } from '../message/send-pacing.service';
 import { isMediaUrl } from '../../common/media/media-url';
 import { createLogger } from '../../common/services/logger.service';
+import { assertBroadcastSendingAllowed } from '../../common/security/broadcast-guard';
 
 /** Stored status media is only ever an image, a video or a voice note; a sender-declared mimetype
  * outside that is served as inert octet-stream so the media endpoint can't be turned into active
@@ -152,6 +153,7 @@ export class StatusService {
   }
 
   async postTextStatus(sessionId: string, text: string, options: StatusPostOptions): Promise<StatusResult> {
+    assertBroadcastSendingAllowed('Posting a status');
     const engine = this.engines.require(
       sessionId,
       () => new NotFoundException(`Session ${sessionId} not found or not connected`),
@@ -165,6 +167,7 @@ export class StatusService {
     media: { url?: string; base64?: string; mimetype?: string } | undefined,
     options: StatusPostOptions,
   ): Promise<StatusResult> {
+    assertBroadcastSendingAllowed('Posting a status');
     const payload = resolveMediaBody(media, { fallbackMimetype: 'image/jpeg' });
     const engine = this.engines.require(
       sessionId,
@@ -181,6 +184,7 @@ export class StatusService {
     media: { url?: string; base64?: string; mimetype?: string } | undefined,
     options: StatusPostOptions,
   ): Promise<StatusResult> {
+    assertBroadcastSendingAllowed('Posting a status');
     const payload = resolveMediaBody(media, { fallbackMimetype: 'video/mp4' });
     const engine = this.engines.require(
       sessionId,
@@ -207,6 +211,7 @@ export class StatusService {
     media: { url?: string; base64?: string; mimetype?: string } | undefined,
     options: StatusPostOptions,
   ): Promise<StatusResult> {
+    assertBroadcastSendingAllowed('Posting a status');
     const payload = resolveMediaBody(media, { fallbackMimetype: 'audio/ogg; codecs=opus' });
     const engine = this.engines.require(
       sessionId,
