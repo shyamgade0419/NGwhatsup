@@ -935,7 +935,7 @@ class WebhookFilters(TypedDict):
 class CreateWebhookRequest(TypedDict):
     url: str
     events: NotRequired[list[WebhookEvent]]
-    # HMAC secret, signed as ``X-OpenWA-Signature: sha256=<hex>``. At least 16 characters; the
+    # HMAC secret, signed as ``X-NG-Signature: sha256=<hex>``. At least 16 characters; the
     # gateway answers 400 below that. Omit for unsigned deliveries. Never returned by a read.
     secret: NotRequired[str]
     headers: NotRequired[dict[str, str]]

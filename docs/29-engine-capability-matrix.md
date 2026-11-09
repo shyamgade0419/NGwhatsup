@@ -1,24 +1,24 @@
 # 29 - Engine Capability Matrix
 
 Three-way comparison of every capability: the **Baileys library** (`@whiskeysockets/baileys`
-7.0.0-rc14), the **whatsapp-web.js library** (1.34.7), and what **OpenWA actually exposes** through
-its adapter layer and REST API — including which "supported" cells only work because OpenWA patches
+7.0.0-rc14), the **whatsapp-web.js library** (1.34.7), and what **NG WhatsApp Gateway actually exposes** through
+its adapter layer and REST API — including which "supported" cells only work because NG WhatsApp Gateway patches
 the installed library. Coverage is total: all 114 `IWhatsAppEngine` methods (29.4), **all 152
 Baileys + 81 whatsapp-web.js library methods** (29.5), all 34 + 31 library events (29.5.4), and all
-13 install-time patches (29.3). If it exists upstream or in OpenWA, it has a row here.
+13 install-time patches (29.3). If it exists upstream or in NG WhatsApp Gateway, it has a row here.
 
 ## 29.1 How to read this matrix
 
 Statuses used in the tables:
 
-- **✅** — works end-to-end through the OpenWA adapter.
-- **✅🔧ⁿ** — works end-to-end, but **only because OpenWA patches the installed library** (patch
+- **✅** — works end-to-end through the NG WhatsApp Gateway adapter.
+- **✅🔧ⁿ** — works end-to-end, but **only because NG WhatsApp Gateway patches the installed library** (patch
   `🔧ⁿ`, see 29.3). On a stock, unpatched install of the library this cell would be broken.
-- **❌ gap** — _adapter-gap_: the underlying library HAS the capability; only the OpenWA adapter
+- **❌ gap** — _adapter-gap_: the underlying library HAS the capability; only the NG WhatsApp Gateway adapter
   wiring is missing. Fixable in this repo.
 - **❌ lib** — _library-limitation_: the underlying library exposes no first-class symbol for the
   operation. Not fixable without raw-proto/fork work or an event-cache hack.
-- **OpenWA REST** column — what a caller of the REST API gets: **✅** on any engine session,
+- **NG WhatsApp Gateway REST** column — what a caller of the REST API gets: **✅** on any engine session,
   **⚠️ `<engine>` only** when the answer depends on the session's engine (the other engine
   answers HTTP 501), **❌ 501** on both engines, and **⚙️ internal** for a method the REST surface
   never exposes: the gateway calls it itself (`probeLiveness`), or no route calls it (`getPhoneNumber`,
@@ -29,32 +29,32 @@ Statuses used in the tables:
 
 Two complementary views:
 
-- **29.4, the OpenWA contract view.** Rows are the 114 `IWhatsAppEngine` methods; use it to see
+- **29.4, the NG WhatsApp Gateway contract view.** Rows are the 114 `IWhatsAppEngine` methods; use it to see
   what a REST caller gets per engine. Source of truth: `src/engine/engine-capability-matrix.ts`
   (per-cell `evidence` strings cite the exact library `file:symbol` inspected).
 - **29.5 — the full engine inventory.** Rows are **every method the installed libraries expose**,
-  each mapped to the OpenWA interface method that uses it (or marked unexposed). Use it as the
+  each mapped to the NG WhatsApp Gateway interface method that uses it (or marked unexposed). Use it as the
   implementation backlog: anything `❌ not exposed` with a library symbol behind it is wiring work,
   not research work. 29.5.3 distills the sweetest spot: capabilities **both** libraries already
-  have and only OpenWA lacks.
+  have and only NG WhatsApp Gateway lacks.
 
 ## 29.2 Adapter architecture
 
-OpenWA never calls a WhatsApp library directly from a controller. Every session owns one engine
+NG WhatsApp Gateway never calls a WhatsApp library directly from a controller. Every session owns one engine
 instance behind the neutral `IWhatsAppEngine` interface (114 methods +
 `EngineEventCallbacks`), and all modules go through it:
 
 ```mermaid
 flowchart LR
-    subgraph OpenWA["OpenWA"]
+    subgraph NG WhatsApp Gateway["NG WhatsApp Gateway"]
         API["REST API controllers"] --> SVC["Modules / services"]
         SVC --> IF["IWhatsAppEngine - 114 methods"]
         IF --> WA["WhatsAppWebJsAdapter"]
         IF --> BA["BaileysAdapter"]
         SVC --> STORE["OpenWA-side stores"]
     end
-    WA --> WLIB["whatsapp-web.js 1.34.7<br/>+ 10 OpenWA patches"]
-    BA --> BLIB["@whiskeysockets/baileys 7.0.0-rc14<br/>+ 3 OpenWA patches"]
+    WA --> WLIB["whatsapp-web.js 1.34.7<br/>+ 10 NG WhatsApp Gateway patches"]
+    BA --> BLIB["@whiskeysockets/baileys 7.0.0-rc14<br/>+ 3 NG WhatsApp Gateway patches"]
     WLIB --> WEB["WhatsApp Web<br/>headless Chromium"]
     BLIB --> WAS["WhatsApp servers<br/>browser-free socket"]
     WA -.->|"not-available"| E["EngineNotSupportedError<br/>HTTP 501"]
@@ -88,7 +88,7 @@ Key adapter facts:
   refused option' is not 'not-available'.
 - **Inbound events** flow the other way: each adapter normalizes library events into the neutral
   `EngineEventCallbacks` (`onMessage`, `onMessageAck`, `onGroupEvent`, `onCall`, …), which the
-  session module turns into OpenWA webhook events. Which library events are consumed — and which
+  session module turns into NG WhatsApp Gateway webhook events. Which library events are consumed — and which
   are dropped — is listed in 29.5.4.
 - **Some REST reads bypass the engine entirely.** `GET …/status` reads are served from
   `StatusStoreService` (fed by inbound ingestion on both engines), so status-read parity holds at
@@ -129,9 +129,9 @@ methods where the symbol really serves eight still passes), it cannot separate a
 from an adapter method of the same name (`logout`), and it cannot see a mapping pointed at the
 wrong interface method. Those three remain reader-verified.
 
-## 29.3 Install-time patches OpenWA applies to the libraries
+## 29.3 Install-time patches NG WhatsApp Gateway applies to the libraries
 
-OpenWA ships thirteen exact, self-disabling source transforms over the installed engines. Each runs at
+NG WhatsApp Gateway ships thirteen exact, self-disabling source transforms over the installed engines. Each runs at
 `npm install` (`scripts/postinstall.js`) and again in the Docker production stage. A recognized repaired
 source shape makes the patcher a no-op. Every image transform fails on an unknown shape. The Puppeteer
 compatibility transform also fails a source install; the other transforms run with `--best-effort` there.
@@ -153,12 +153,12 @@ reaching READY is not evidence that every patch landed. See docs/12 for the oper
 | 🔧⁴  | `scripts/patch-wwebjs-ready-sync.js`                       | whatsapp-web.js readiness pipeline                 | Two live-observed races: on a warm profile the page can reach `hasSynced=true` before the edge listener attaches (the whole post-auth pipeline silently never runs), and a partial `attachEventListeners` failure was swallowed (message bridge dead while sends still work). Adds an `eventsAttached` completion marker and fires the handler once when the level is already true; double-fire is deduped by the adapter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | exact-shape, one group all-or-nothing; unknown shape fails the build.                                                                                                                                                                                                                                                                                                 |
 | 🔧⁵  | `scripts/patch-baileys-appstate.js`                        | Baileys `lib/Socket/chats.js`                      | `resyncAppState`'s `while (collectionsToHandle.size)` loop: `query()` resolves `undefined` on its own 60s timeout, decoding to `{}`, and every loop exit — including the library's own attempts guard — lives inside `for (const key in decoded)`, which never runs on an empty decode. The loop would burn one 60s query per pass for the life of the socket (~1000 wasted queries/day). The patch adds the missing exit: empty decode → `break`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | exact-shape match; remove once upstream bounds the loop.                                                                                                                                                                                                                                                                                                              |
 | 🔧⁶  | `scripts/patch-baileys-newsletter-create.js`               | Baileys `lib/Socket/newsletter.js`                 | `parseNewsletterCreateResponse` reads `thread.picture.id` eagerly, but `newsletterCreate` sends only `{ name, description }` — there is no picture parameter anywhere in the chain — so `thread.picture` is null on EVERY create and the parse threw for all of them. WhatsApp creates the newsletter server-side BEFORE the response is parsed, so each call returned 500 while leaving a real channel behind, and `createChannel` is non-idempotent, so a client retrying a 5xx leaked one orphan per attempt (confirmed on the test account). `description` has the same defect whenever the caller omits one. The patch reads every nested field defensively so the response's `id` — the only place the new channel's id appears — always survives.                                                                                                                                                                                                                                                                                                                                                                                           | exact-shape match; remove once upstream tolerates a pictureless newsletter.                                                                                                                                                                                                                                                                                           |
-| 🔧¹² | `scripts/patch-baileys-pairing.js`                         | Baileys `lib/Socket/socket.js`, `messages-recv.js` | Send notification ACKs before login. Rotate retired registration secrets, persist them and refresh the current QR without consuming another reference.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Rc14 backport with one adaptation: once `creds.me` is set the QR timer stops, which upstream keeps running; remove once an upstream release includes both fixes. Upstream's timer then ends a pairing wait again when the QR refs run out, which can come before the 5 minutes OpenWA waits for a requested code.                                                     |
+| 🔧¹² | `scripts/patch-baileys-pairing.js`                         | Baileys `lib/Socket/socket.js`, `messages-recv.js` | Send notification ACKs before login. Rotate retired registration secrets, persist them and refresh the current QR without consuming another reference.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Rc14 backport with one adaptation: once `creds.me` is set the QR timer stops, which upstream keeps running; remove once an upstream release includes both fixes. Upstream's timer then ends a pairing wait again when the QR refs run out, which can come before the 5 minutes NG WhatsApp Gateway waits for a requested code.                                                     |
 | 🔧⁷  | `scripts/patch-wwebjs-participant-arity.js`                | whatsapp-web.js `GroupChat.js`                     | `removeParticipants`/`promoteParticipants`/`demoteParticipants` resolve each requested id against the group's own member collection and drop what they cannot find, then resolve `{status: 200}` for the batch. Dropping EVERY id left the WA Web request builder an empty repeated field, whose arity assertion threw — the caller saw an unnamed `500` on removal. Promote and demote have no such assertion, so they answered `200` claiming success for people WhatsApp never touched. The patch keeps the resolved array with its holes, skips the call when nothing resolved, and returns `matched` (one boolean per REQUESTED id) so the adapter can report a per-participant outcome instead of inventing one.                                                                                                                                                                                                                                                                                                                                                                                                                             | exact-shape match; remove once upstream reports which participants it acted on.                                                                                                                                                                                                                                                                                       |
 | 🔧⁸  | `scripts/patch-wwebjs-block.js`                            | whatsapp-web.js `Contact.js`                       | `Contact.block()`/`unblock()` resolved their target through `getContactToBlockOnlyUseIfNoAssociatedChat`, which WhatsApp Web removed, so both answered an opaque `500` for every id shape. The replacement helpers `handleBlock`/`handleUnblock` are modal-driven UI wrappers that block nothing when called headless, and the server now refuses a phone-keyed block outright (`trying to block a pn contact without a chat`) because individual chats are keyed by LID while wwjs folds every id back to a phone number. Resolves through `WAWebLidMigrationUtils.toUserLid` to the chat-owning identity and calls `blockContact`/`unblockContact` directly, falling back to the original contact when no LID or chat exists. Unblock then unblocks, once each, the other blocklist entries the same person holds under its phone id or LID.                                                                                                                                                                                                                                                                                                     | exact-shape match on both bodies; unknown shape fails the build.                                                                                                                                                                                                                                                                                                      |
 | 🔧⁹  | `scripts/patch-wwebjs-group-description.js`                | whatsapp-web.js `GroupChat.js`                     | `GroupChat.setDescription()` calls the page's `WAWebGroupModifyInfoJob.setGroupDescription(chatWid, description, newId, descId)` positionally, but that job now takes a single options object `{desc, groupWid, newDescId, prevDescId}`. The first positional argument lands where the object is read, every field comes back undefined, and `widToGroupJid(undefined)` throws inside the page — reaching the caller as a bare `500` while the library still types the method `Promise<boolean>`. `setGroupSubject` in the same module is still positional, which is why subjects kept working and made the Wid look innocent. The patch sends the options object, takes `newDescId` from `WARandomHex.randomHex(8)` as the product does, and maps an empty description to `desc: null` so it selects the job's delete branch rather than sending an empty body element. The open upstream fix #201895 changes the same call, but keeps `WAWebMsgKey.newId()` and passes an empty description through verbatim, so this patcher will not stand down when it lands and the `desc: null` mapping has to be carried over rather than dropped with it. | exact-shape match; unknown shape fails the build.                                                                                                                                                                                                                                                                                                                     |
 | 🔧¹⁰ | `scripts/patch-wwebjs-media-id.js`                         | whatsapp-web.js `Injected/Utils.js`                | Every media send built by `processMediaData` failed on the WhatsApp Web builds rolled out on 2026-09-17 with `Data passed to getter must include an id property`, while text still sent. `window.WWebJS.sendMessage` builds the outgoing message with `id: newMsgKey` and then spreads the media model returned by `processMediaData` into it, and on those builds that model carries an enumerable private `__x_id` that clobbers the id when the `Msg` model initialises. The patch deletes `message.__x_id` right after the object is built, which is upstream's own fix (whatsapp-web.js PR #201923, unmerged, no release after 1.34.7). It stands down once the installed tree carries that line.                                                                                                                                                                                                                                                                                                                                                                                                                                             | exact-shape match; unknown shape fails the build.                                                                                                                                                                                                                                                                                                                     |
-| 🔧¹¹ | `scripts/patch-wwebjs-send-error.js`                       | whatsapp-web.js `Client.js`                        | A send the page refused reached OpenWA as the minified `t: t`, with nothing but Node frames: puppeteer rebuilds a page-side exception from its class name and description only, and WhatsApp Web's own error classes are minified to one letter and keep their detail in their own properties. The patch wraps the `window.WWebJS.sendMessage` call inside `Client.sendMessage`'s evaluate. A plain `Error`, which is what whatsapp-web.js's own send failures and WhatsApp Web's `No LID for user` already are, is rethrown as the same object, so its text and OpenWA's matching on it are unchanged. Anything else is rethrown as an `Error` reading `page threw {...}`, a capped JSON summary of the WhatsApp Web build actually running, the constructor name, `name`, `message`, `stack` and the value's own properties. Diagnostic only: a successful send returns what it returned before, and the dead-page classifier never reads a captured error as a transport death.                                                                                                                                                                 | exact-shape match; unknown shape fails the build.                                                                                                                                                                                                                                                                                                                     |
+| 🔧¹¹ | `scripts/patch-wwebjs-send-error.js`                       | whatsapp-web.js `Client.js`                        | A send the page refused reached NG WhatsApp Gateway as the minified `t: t`, with nothing but Node frames: puppeteer rebuilds a page-side exception from its class name and description only, and WhatsApp Web's own error classes are minified to one letter and keep their detail in their own properties. The patch wraps the `window.WWebJS.sendMessage` call inside `Client.sendMessage`'s evaluate. A plain `Error`, which is what whatsapp-web.js's own send failures and WhatsApp Web's `No LID for user` already are, is rethrown as the same object, so its text and NG WhatsApp Gateway's matching on it are unchanged. Anything else is rethrown as an `Error` reading `page threw {...}`, a capped JSON summary of the WhatsApp Web build actually running, the constructor name, `name`, `message`, `stack` and the value's own properties. Diagnostic only: a successful send returns what it returned before, and the dead-page classifier never reads a captured error as a transport death.                                                                                                                                                                 | exact-shape match; unknown shape fails the build.                                                                                                                                                                                                                                                                                                                     |
 | 🔧¹³ | `scripts/patch-wwebjs-puppeteer.js`                        | whatsapp-web.js `Client.js`                        | Use Puppeteer 25 browser connection getters so destroy closes Chromium and logout removes authentication only after closure.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Both exact replacements must match; an unknown or partial shape aborts installation. Stands down when upstream carries both changes.                                                                                                                                                                                                                                  |
 
 ### 29.3.2 Which matrix rows depend on which patch
@@ -183,7 +183,7 @@ class of rows (🔧⁸ and 🔧¹⁰), stated in the table instead.
 | 🔧⁸ block/unblock           | `blockContact`, `unblockContact` on **wwjs**. Without it both answer an opaque `500` on every id, so the capability is dead rather than degraded; the blocklist read still works, which makes the failure look one-sided.                                                                                                                                                                                                                                                                                                                                |
 | 🔧¹⁰ media send repair      | Every **wwjs** media send built by `processMediaData`: `sendImageMessage`, `sendVideoMessage`, `sendAudioMessage` (voice notes included, through `ptt`), `sendDocumentMessage` and the media status posts. A sticker is built by `processStickerData`, which returns a new object rather than the media model. On the WhatsApp Web builds from 2026-09-17 the library's own id is clobbered by the media model and every such send answers a bare `500`, while text sends keep working. Not row-marked: it covers a whole class of rows rather than one. |
 | 🔧¹¹ send error capture     | No row. Every **wwjs** send that fails in the page reports what the page threw instead of `t: t`, but no cell's outcome depends on it: a send that works without the patch works the same way with it.                                                                                                                                                                                                                                                                                                                                                   |
-| 🔧¹² pairing refresh        | No row. Baileys linking by QR or pairing code: notification ACKs go out before login, retired registration secrets rotate and the current QR re-renders without spending a ref. Once a pairing code was requested (`creds.me` set) the QR timer stops, so running out of refs no longer ends that socket, as it does upstream. OpenWA ends it instead 5 minutes after the latest pairing request, and the session registers again with a new QR.                                                                                                         |
+| 🔧¹² pairing refresh        | No row. Baileys linking by QR or pairing code: notification ACKs go out before login, retired registration secrets rotate and the current QR re-renders without spending a ref. Once a pairing code was requested (`creds.me` set) the QR timer stops, so running out of refs no longer ends that socket, as it does upstream. NG WhatsApp Gateway ends it instead 5 minutes after the latest pairing request, and the session registers again with a new QR.                                                                                                         |
 
 Rows that are ✅ on **both** engines where one side is patch-dependent: `initialize` (🔧⁴ wwjs),
 `sendTextMessage` (🔧³ wwjs), `postTextStatus` / `postImageStatus` / `postVideoStatus` /
@@ -209,7 +209,7 @@ else, which is the behaviour we would want and the same shape as `deleteProfileP
 indiscriminate `catch (ignoredError) { return false; }` appears **once**, in
 `transferChannelOwnership` (`Client.js:2627`).
 
-So it is not a house style, and the one method carrying it is the one OpenWA answers 501 for and
+So it is not a house style, and the one method carrying it is the one NG WhatsApp Gateway answers 501 for and
 never invokes (29.6.2). The patch would repair a path our code does not take. It is also not an
 upstream oversight but a deliberate design choice — a boolean return means discarding the cause — so
 unlike 🔧⁶ there is no upstream fix that would ever retire it.
@@ -219,17 +219,17 @@ opens `if (!channel) return false;` before its try, so its `false` conflates _ch
 _WhatsApp refused_, and the adapter answers 403 for both. That distinction is ours to make in our own
 adapter and involves no library change.
 
-## 29.4 Full capability matrix: the OpenWA contract view (114 methods)
+## 29.4 Full capability matrix: the NG WhatsApp Gateway contract view (114 methods)
 
-Legend recap: **✅** supported · **✅🔧ⁿ** supported via OpenWA patch `🔧ⁿ` (29.3) ·
+Legend recap: **✅** supported · **✅🔧ⁿ** supported via NG WhatsApp Gateway patch `🔧ⁿ` (29.3) ·
 **❌ gap** adapter-gap · **❌ lib** library-limitation. Column headers carry the engine-wide
 patch dependencies (🔧¹ message-id backport on wwjs; 🔧⁵ app-state bound on
-Baileys). The **OpenWA REST** column reads from the caller's side: ✅ works whatever engine the
+Baileys). The **NG WhatsApp Gateway REST** column reads from the caller's side: ✅ works whatever engine the
 session runs; ⚠️ depends on the session engine; ❌ 501 on both.
 
 ### 29.4.1 Session & connection
 
-| Method               | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST |
+| Method               | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
 | -------------------- | ------------------- | ---------------- | ----------- |
 | `initialize`         | ✅                  | ✅🔧⁴            | ✅          |
 | `disconnect`         | ✅                  | ✅               | ✅          |
@@ -254,7 +254,7 @@ is restarted.
 
 ### 29.4.2 Sending messages
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST     |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
 | --------------------- | ------------------- | ---------------- | --------------- |
 | `sendTextMessage`     | ✅                  | ✅🔧³            | ✅              |
 | `sendImageMessage`    | ✅                  | ✅               | ✅              |
@@ -274,7 +274,7 @@ is restarted.
 
 ### 29.4.3 Message management
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST     |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
 | --------------------- | ------------------- | ---------------- | --------------- |
 | `editMessage`         | ✅                  | ✅               | ✅              |
 | `deleteMessage`       | ✅                  | ✅               | ✅              |
@@ -288,7 +288,7 @@ is restarted.
 
 ### 29.4.4 Chats
 
-| Method              | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST  |
+| Method              | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST  |
 | ------------------- | ------------------- | ---------------- | ------------ |
 | `getChats`          | ✅                  | ✅               | ✅           |
 | `getChatHistory`    | ❌ lib              | ✅               | ⚠️ wwjs only |
@@ -301,7 +301,7 @@ is restarted.
 
 ### 29.4.5 Contacts
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
 | --------------------- | ------------------- | ---------------- | ----------- |
 | `getContacts`         | ✅                  | ✅               | ✅          |
 | `getContactById`      | ✅                  | ✅               | ✅          |
@@ -319,7 +319,7 @@ is restarted.
 
 ### 29.4.6 Groups
 
-| Method                           | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST     |
+| Method                           | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
 | -------------------------------- | ------------------- | ---------------- | --------------- |
 | `createGroup`                    | ✅                  | ❌ lib           | ⚠️ baileys only |
 | `getGroups`                      | ✅                  | ✅               | ✅              |
@@ -348,7 +348,7 @@ is restarted.
 
 ### 29.4.7 Channels
 
-| Method                     | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST     |
+| Method                     | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
 | -------------------------- | ------------------- | ---------------- | --------------- |
 | `createChannel`            | ✅🔧⁶               | ✅               | ✅              |
 | `deleteChannel`            | ✅                  | ✅               | ✅              |
@@ -363,7 +363,7 @@ is restarted.
 
 ### 29.4.8 Status / stories
 
-| Method               | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST  |
+| Method               | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST  |
 | -------------------- | ------------------- | ---------------- | ------------ |
 | `postTextStatus`     | ✅                  | ✅🔧²            | ✅           |
 | `postImageStatus`    | ✅                  | ✅🔧²            | ✅           |
@@ -380,7 +380,7 @@ answers 501.
 
 ### 29.4.9 Labels (WA Business)
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST     |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
 | --------------------- | ------------------- | ---------------- | --------------- |
 | `getLabels`           | ❌ lib              | ✅               | ⚠️ wwjs only    |
 | `getLabelById`        | ❌ lib              | ✅               | ⚠️ wwjs only    |
@@ -393,7 +393,7 @@ answers 501.
 
 ### 29.4.10 Catalog & products (WA Business)
 
-| Method        | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST     |
+| Method        | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
 | ------------- | ------------------- | ---------------- | --------------- |
 | `getCatalog`  | ✅                  | ❌ lib           | ⚠️ baileys only |
 | `getProducts` | ✅                  | ❌ lib           | ⚠️ baileys only |
@@ -401,7 +401,7 @@ answers 501.
 
 ### 29.4.11 Own profile & presence
 
-| Method                 | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST |
+| Method                 | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
 | ---------------------- | ------------------- | ---------------- | ----------- |
 | `setProfileName`       | ✅                  | ✅               | ✅          |
 | `setProfilePicture`    | ✅                  | ✅               | ✅          |
@@ -411,7 +411,7 @@ answers 501.
 
 ### 29.4.12 Presence & calls
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | OpenWA REST     |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
 | --------------------- | ------------------- | ---------------- | --------------- |
 | `subscribeToPresence` | ✅                  | ❌ lib           | ⚠️ baileys only |
 | `rejectCall`          | ✅                  | ❌ lib           | ⚠️ baileys only |
@@ -424,10 +424,10 @@ work on any engine (87 fully supported + 2 store-backed status reads), **15** ar
 is not exposed. Four of the 89 (`probeLiveness`, `getPhoneNumber`, `getPushName`, `checkNumberExists`) are ⚙️
 internal and have no route.
 
-## 29.5 Full engine method inventory — every library method, mapped to OpenWA
+## 29.5 Full engine method inventory — every library method, mapped to NG WhatsApp Gateway
 
 This is the backlog view: **all 152 Baileys socket methods and all 81 whatsapp-web.js Client
-methods**, each marked with where OpenWA uses it. The symbol list itself is gated:
+methods**, each marked with where NG WhatsApp Gateway uses it. The symbol list itself is gated:
 `check-upstream-surface.mjs` extracts the installed libraries' public surface and fails on any
 drift from `scripts/upstream-surface.snapshot.json`, so a library bump forces a review of this
 section. The exposure mapping is hand-maintained against the adapter sources
@@ -444,14 +444,14 @@ Exposure column values:
   wiring, health probes, helpers).
 - **🔩 plumbing** — E2EE/socket/media-transport internals that are adapter machinery, not user
   capabilities; correctly never exposed.
-- **❌ not exposed** — a real library capability with no OpenWA path. **This is the implementation
+- **❌ not exposed** — a real library capability with no NG WhatsApp Gateway path. **This is the implementation
   backlog.**
 
 ### 29.5.1 Baileys — 152 socket methods
 
 **Messaging & media** (19)
 
-| Library method                 | OpenWA exposure                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Library method                 | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `getMediaHost`                 | 🔩 plumbing                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `readMessages`                 | ✅ `sendSeen`                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -475,7 +475,7 @@ Exposure column values:
 
 **Groups** (19)
 
-| Library method                   | OpenWA exposure                                                                         |
+| Library method                   | NG WhatsApp Gateway exposure                                                                         |
 | -------------------------------- | --------------------------------------------------------------------------------------- |
 | `groupAcceptInvite`              | ✅ `joinGroupViaInviteCode`                                                             |
 | `groupAcceptInviteV4`            | ❌ **not exposed**                                                                      |
@@ -498,9 +498,9 @@ Exposure column values:
 | `groupUpdateSubject`             | ✅ `setGroupSubject`                                                                    |
 
 **Communities** (23) — the largest single gap: an entire WhatsApp feature area (groups-of-groups)
-with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at all.
+with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no community API at all.
 
-| Library method                       | OpenWA exposure    |
+| Library method                       | NG WhatsApp Gateway exposure    |
 | ------------------------------------ | ------------------ |
 | `communityAcceptInvite`              | ❌ **not exposed** |
 | `communityAcceptInviteV4`            | ❌ **not exposed** |
@@ -528,7 +528,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Newsletters (channels)** (19)
 
-| Library method                | OpenWA exposure                              |
+| Library method                | NG WhatsApp Gateway exposure                              |
 | ----------------------------- | -------------------------------------------- |
 | `newsletterAdminCount`        | ❌ **not exposed**                           |
 | `newsletterChangeOwner`       | ✅ `transferChannelOwnership`                |
@@ -552,7 +552,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Business & catalog** (12)
 
-| Library method          | OpenWA exposure                                                                                    |
+| Library method          | NG WhatsApp Gateway exposure                                                                                    |
 | ----------------------- | -------------------------------------------------------------------------------------------------- |
 | `addOrEditQuickReply`   | ❌ **not exposed**                                                                                 |
 | `fetchMessageHistory`   | ❌ **not exposed**                                                                                 |
@@ -569,7 +569,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Labels** (6)
 
-| Library method       | OpenWA exposure                 |
+| Library method       | NG WhatsApp Gateway exposure                 |
 | -------------------- | ------------------------------- |
 | `addChatLabel`       | ✅ `addLabelToChat`             |
 | `addLabel`           | ✅ `upsertLabel`, `deleteLabel` |
@@ -580,7 +580,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Privacy & account settings** (13)
 
-| Library method                     | OpenWA exposure                                                                                                                                                                                      |
+| Library method                     | NG WhatsApp Gateway exposure                                                                                                                                                                                      |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `fetchPrivacySettings`             | ❌ **not exposed** — never called by the adapter; the library reaches it internally from `readMessages` (`sendSeen`), and its raw TypeError on an unanswered query is what forces the deadline bound |
 | `issuePrivacyTokens`               | ❌ **not exposed**                                                                                                                                                                                   |
@@ -598,7 +598,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Queries** (8)
 
-| Library method                 | OpenWA exposure                                                                                                                                        |
+| Library method                 | NG WhatsApp Gateway exposure                                                                                                                                        |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `executeUSyncQuery`            | ❌ **not exposed**                                                                                                                                     |
 | `fetchAccountReachoutTimelock` | ⚙️ internal wiring                                                                                                                                     |
@@ -611,7 +611,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Profile, contacts & presence** (12)
 
-| Library method           | OpenWA exposure                                                                                        |
+| Library method           | NG WhatsApp Gateway exposure                                                                                        |
 | ------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `addOrEditContact`       | ✅ `upsertContact`                                                                                     |
 | `createCallLink`         | ✅ `createCallLink`                                                                                    |
@@ -628,7 +628,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Socket, session & plumbing** (21)
 
-| Library method                    | OpenWA exposure                                                                                                                                                             |
+| Library method                    | NG WhatsApp Gateway exposure                                                                                                                                                             |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `appPatch`                        | 🔩 plumbing                                                                                                                                                                 |
 | `assertSessions`                  | 🔩 plumbing                                                                                                                                                                 |
@@ -656,7 +656,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Session & connection** (16)
 
-| Library method             | OpenWA exposure                                                                                   |
+| Library method             | NG WhatsApp Gateway exposure                                                                                   |
 | -------------------------- | ------------------------------------------------------------------------------------------------- |
 | `cancelPairingCode`        | ❌ **not exposed** — session/transport setting, not a WhatsApp capability                         |
 | `constructor`              | — class plumbing (not a capability)                                                               |
@@ -677,7 +677,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Messages** (8)
 
-| Library method                 | OpenWA exposure                                                                                                                                                                                                                                                          |
+| Library method                 | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                                          |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `getMessageById`               | ❌ **not exposed**                                                                                                                                                                                                                                                       |
 | `getPinnedMessages`            | ❌ **not exposed**                                                                                                                                                                                                                                                       |
@@ -690,7 +690,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Chats** (9)
 
-| Library method   | OpenWA exposure                                                                                                                                                                                                                                                                                                                                                                          |
+| Library method   | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                                                                                                                                                          |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `archiveChat`    | ✅ `archiveChat`                                                                                                                                                                                                                                                                                                                                                                         |
 | `getChatById`    | ✅ `muteChannel`, `sendSeen`, `clearChatMessages`, `markUnread`, `deleteChat`, `sendChatState`, `getGroupInfo`, `addParticipants`, `leaveGroup`, `setGroupSubject`, `setGroupDescription`, `getGroupInviteCode`, `revokeGroupInviteCode`, `getChatLabels`, `replyToMessage`, `forwardMessage`, `reactToMessage`, `getMessageReactions`, `getChatHistory`, `deleteMessage`, `editMessage` |
@@ -704,7 +704,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Groups** (7)
 
-| Library method                   | OpenWA exposure                     |
+| Library method                   | NG WhatsApp Gateway exposure                     |
 | -------------------------------- | ----------------------------------- |
 | `acceptInvite`                   | ✅ `joinGroupViaInviteCode`         |
 | `approveGroupMembershipRequests` | ✅ `approveGroupMembershipRequests` |
@@ -716,7 +716,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Channels** (12)
 
-| Library method             | OpenWA exposure                                                                                      |
+| Library method             | NG WhatsApp Gateway exposure                                                                                      |
 | -------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `acceptChannelAdminInvite` | ❌ **not exposed**                                                                                   |
 | `createChannel`            | ✅ `createChannel`                                                                                   |
@@ -733,7 +733,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Labels** (5)
 
-| Library method      | OpenWA exposure                                                                                     |
+| Library method      | NG WhatsApp Gateway exposure                                                                                     |
 | ------------------- | --------------------------------------------------------------------------------------------------- |
 | `addOrRemoveLabels` | ✅ `addLabelToChat`, `removeLabelFromChat`                                                          |
 | `getChatLabels`     | ❌ **not exposed** — the adapter reads the chat and calls `Chat.getLabels()`, not the Client method |
@@ -743,7 +743,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Status & broadcasts** (3)
 
-| Library method        | OpenWA exposure         |
+| Library method        | NG WhatsApp Gateway exposure         |
 | --------------------- | ----------------------- |
 | `getBroadcastById`    | ✅ `getContactStatus`   |
 | `getBroadcasts`       | ✅ `getContactStatuses` |
@@ -751,7 +751,7 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Contacts & numbers** (11)
 
-| Library method                 | OpenWA exposure                                                  |
+| Library method                 | NG WhatsApp Gateway exposure                                                  |
 | ------------------------------ | ---------------------------------------------------------------- |
 | `deleteAddressbookContact`     | ✅ `deleteContact`                                               |
 | `getBlockedContacts`           | ✅ `getBlockedContacts`                                          |
@@ -767,14 +767,14 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Business** (2)
 
-| Library method          | OpenWA exposure    |
+| Library method          | NG WhatsApp Gateway exposure    |
 | ----------------------- | ------------------ |
 | `addOrEditCustomerNote` | ❌ **not exposed** |
 | `getCustomerNote`       | ❌ **not exposed** |
 
 **Profile & presence** (7)
 
-| Library method            | OpenWA exposure           |
+| Library method            | NG WhatsApp Gateway exposure           |
 | ------------------------- | ------------------------- |
 | `deleteProfilePicture`    | ✅ `deleteProfilePicture` |
 | `getProfilePicUrl`        | ✅ `getProfilePicture`    |
@@ -786,11 +786,11 @@ with zero OpenWA surface. Baileys-only; whatsapp-web.js has no community API at 
 
 **Misc** (1)
 
-| Library method   | OpenWA exposure     |
+| Library method   | NG WhatsApp Gateway exposure     |
 | ---------------- | ------------------- |
 | `createCallLink` | ✅ `createCallLink` |
 
-### 29.5.3 Supported by BOTH libraries — missing only in OpenWA
+### 29.5.3 Supported by BOTH libraries — missing only in NG WhatsApp Gateway
 
 **Empty.** No capability has a first-class symbol on both engines and no `IWhatsAppEngine` method.
 
@@ -812,12 +812,12 @@ search — would be store-backed), **poll-vote read** (wwjs `getPollVotes`; Bail
 
 ### 29.5.4 Events inventory — all 34 Baileys + 31 wwjs events
 
-OpenWA consumes events by normalizing them into `EngineEventCallbacks`; anything else is dropped.
+NG WhatsApp Gateway consumes events by normalizing them into `EngineEventCallbacks`; anything else is dropped.
 "Consumed" below means referenced by the adapter code.
 
 **Baileys (34):**
 
-| Event                       | OpenWA                                              |     | Event                            | OpenWA                          |
+| Event                       | NG WhatsApp Gateway                                              |     | Event                            | NG WhatsApp Gateway                          |
 | --------------------------- | --------------------------------------------------- | --- | -------------------------------- | ------------------------------- |
 | `messages.upsert`           | ✅                                                  |     | `chats.lock`                     | ❌                              |
 | `messages.update`           | ✅                                                  |     | `message-capping.update`         | ❌                              |
@@ -839,7 +839,7 @@ OpenWA consumes events by normalizing them into `EngineEventCallbacks`; anything
 
 **whatsapp-web.js (31):**
 
-| Event                       | OpenWA       |     | Event                  | OpenWA                                                                          |
+| Event                       | NG WhatsApp Gateway       |     | Event                  | NG WhatsApp Gateway                                                                          |
 | --------------------------- | ------------ | --- | ---------------------- | ------------------------------------------------------------------------------- |
 | `message`                   | ✅           |     | `change_battery`       | ❌                                                                              |
 | `message_create`            | ✅           |     | `change_state`         | ❌                                                                              |
@@ -886,13 +886,13 @@ adapter boundary — none silently stubs.
 | Method                     | Cause | What's missing (evidence)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | -------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `subscribeToChannel`       | gap   | `Client.subscribeToChannel(channelId)` (`Client.js:2542`) takes a channel **id** and resolves a boolean — it cannot satisfy the subscribe-by-invite-code contract alone. Correct wiring is two-step: `getChannelByInviteCode(inviteCode)` (`Client.js:1716`) → `subscribeToChannel(channel.id)`, unverified against a live session (the previous one-step call was a phantom success). The one remaining wwjs adapter-gap.                                                                                                                                                                                                                                                                                                                     |
-| `createGroup`              | lib   | `Client.createGroup` exists and is typed `Promise<CreateGroupResult \| string>`, but its injected evaluate reaches a WhatsApp Web internal that no longer exposes `findImpl` (`Client.js:2325`). Measured live on **two** builds — `2.3000.1044858477-alpha` auto-resolved and `2.3000.1044770897-alpha` pinned — both `TypeError: this.findImpl is not a function`, reaching the caller as a bare 500. Bare and `@c.us`-qualified participant ids fail identically, so the id shape is not the variable; varying the build is what separates this from registry pin drift. `findImpl` is in neither the installed `Client.js` nor any OpenWA patcher, so it belongs to the page and cannot be patched around. Baileys serves this capability. |
+| `createGroup`              | lib   | `Client.createGroup` exists and is typed `Promise<CreateGroupResult \| string>`, but its injected evaluate reaches a WhatsApp Web internal that no longer exposes `findImpl` (`Client.js:2325`). Measured live on **two** builds — `2.3000.1044858477-alpha` auto-resolved and `2.3000.1044770897-alpha` pinned — both `TypeError: this.findImpl is not a function`, reaching the caller as a bare 500. Bare and `@c.us`-qualified participant ids fail identically, so the id shape is not the variable; varying the build is what separates this from registry pin drift. `findImpl` is in neither the installed `Client.js` nor any NG WhatsApp Gateway patcher, so it belongs to the page and cannot be patched around. Baileys serves this capability. |
 | `demoteChannelAdmin`       | lib   | `Client.demoteChannelAdmin` exists (`index.d.ts:35`) but its page body calls `window.require('WAWebDemoteNewsletterAdminAction').demoteNewsletterAdmin` (`Client.js:1907-1925`), and a module probe on a live session (Web `2.3000.1044824727-alpha`, unpinned) returned that module resolving with `demoteNewsletterAdmin: undefined`. The sibling path used inside `transferChannelOwnership` (`WAWebNewsletterDemoteAdminJob.demoteNewsletterAdminAction`) is undefined too, so there is nothing to retarget. Baileys serves this capability.                                                                                                                                                                                               |
 | `transferChannelOwnership` | lib   | `Client.transferChannelOwnership` exists (`index.d.ts:375`) and its page function `WAWebChangeNewsletterOwnerAction.changeNewsletterOwnerAction` is present, but on Web `2.3000.1044824727-alpha` it rejects every call **locally** with `contact-not-found-in-newsletter-subscriber-list` — 4-9ms against a 352-531ms known-server baseline measured in the same page, so it never reaches WhatsApp. Unchanged by subscribing the target, promoting it to admin, or restarting the session; the only repopulation path, `WAWebCollections.NewsletterMetadataCollection.update`, is `undefined`. Baileys serves this capability.                                                                                                               |
 | `upsertLabel`              | lib   | 1.34.7 reads labels and assigns them (`getLabels`, `getLabelById`, `getChatLabels`, `getChatsByLabelId`, `addOrRemoveLabels`, `index.d.ts:129-154`) but exposes nothing that creates/edits a label definition.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `deleteLabel`              | lib   | Same as above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `subscribeToPresence`      | lib   | Only `sendPresenceAvailable`/`sendPresenceUnavailable` (`index.d.ts:230,233`), which publish the _account's own_ presence; no subscribe call and no presence event is emitted.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `rejectCall`               | lib   | `Call.reject()` exists and is typed `Promise<void>` (`index.d.ts:2417`), but measured live on 2026-09-17 on OpenWA 0.23.4 with WhatsApp Web `2.3000.1047471845-alpha` the reject resolved and OpenWA logged the call as auto-rejected while the caller's phone kept ringing until it timed out. The cause is not established. The page function it runs, `WWebJS.rejectCall`, is modified by OpenWA patch 🔧¹ (`wwebjs-201832`), which reads the own user id from `getMaybeMePnUser()._serialized` or `$1`. Baileys serves this capability, and its auto-reject stopped the caller's phone at once in a live test the same day.                                                                                                                |
+| `rejectCall`               | lib   | `Call.reject()` exists and is typed `Promise<void>` (`index.d.ts:2417`), but measured live on 2026-09-17 on NG WhatsApp Gateway 0.23.4 with WhatsApp Web `2.3000.1047471845-alpha` the reject resolved and NG WhatsApp Gateway logged the call as auto-rejected while the caller's phone kept ringing until it timed out. The cause is not established. The page function it runs, `WWebJS.rejectCall`, is modified by NG WhatsApp Gateway patch 🔧¹ (`wwebjs-201832`), which reads the own user id from `getMaybeMePnUser()._serialized` or `$1`. Baileys serves this capability, and its auto-reject stopped the caller's phone at once in a live test the same day.                                                                                                                |
 | `getCatalog`               | lib   | No `Client.getCatalog` in `index.d.ts` (0 hits); `Product`/`Order` are inbound-only parsers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `getProducts`              | lib   | Same as above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `getProduct`               | lib   | Only page-internal `getProductMetadata` (`Utils.js:1290`), not a public Client fn.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |

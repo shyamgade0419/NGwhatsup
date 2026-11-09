@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OpenWA;
 
 /**
- * Checks the X-OpenWA-Signature header of a webhook delivery.
+ * Checks the X-NG-Signature header of a webhook delivery.
  */
 final class WebhookSignature
 {
@@ -14,7 +14,7 @@ final class WebhookSignature
     }
 
     /**
-     * Check a delivery's X-OpenWA-Signature header (`sha256=<hex HMAC-SHA256>`)
+     * Check a delivery's X-NG-Signature header (`sha256=<hex HMAC-SHA256>`)
      * against the webhook secret. Pass the raw request body exactly as received
      * (e.g. `file_get_contents('php://input')`); a re-encoded json_decode() can
      * differ byte for byte and will not verify. Returns false for a missing,

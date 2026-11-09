@@ -246,7 +246,7 @@ an `X-Forwarded-For` hop (`203.0.113.7:51000`, `[2001:db8::1]:443`) resolves to 
 
 ### In Transit
 
-OpenWA serves plain HTTP on its port; terminate **TLS at your reverse proxy / load balancer** (nginx, Traefik, Caddy) and expose the gateway only over HTTPS in production. The API key is bearer-equivalent and is sent on every request, so it must never traverse plaintext `http://` outside local development.
+NG WhatsApp Gateway serves plain HTTP on its port; terminate **TLS at your reverse proxy / load balancer** (nginx, Traefik, Caddy) and expose the gateway only over HTTPS in production. The API key is bearer-equivalent and is sent on every request, so it must never traverse plaintext `http://` outside local development.
 
 ### At Rest
 
@@ -440,12 +440,12 @@ app.enableCors({
 
 ```mermaid
 sequenceDiagram
-    participant OW as OpenWA
+    participant OW as NG WhatsApp Gateway
     participant WH as Webhook Endpoint
 
     OW->>OW: Create payload
     OW->>OW: Sign with HMAC-SHA256
-    OW->>WH: POST + X-OpenWA-Signature
+    OW->>WH: POST + X-NG-Signature
     WH->>WH: Verify signature
     WH->>WH: Process if valid
     WH-->>OW: 200 OK
@@ -454,7 +454,7 @@ sequenceDiagram
 ### Signature Verification
 
 ```typescript
-// OpenWA: Generate signature
+// NG WhatsApp Gateway: Generate signature
 function signPayload(payload: object, secret: string): string {
   const hmac = crypto.createHmac('sha256', secret);
   hmac.update(JSON.stringify(payload));
@@ -660,7 +660,7 @@ flowchart TB
 
 > `API_MASTER_KEY` only seeds the first ADMIN key, and is read only while the key table is empty. Changing it later has no effect: the new value never authenticates and the seeded key stays valid. A value that is set must still be at least 32 characters and not a known default on every production boot, or the boot refuses to start; unset it after rotating. Rotate by minting a new ADMIN key with `POST /api/auth/api-keys` and revoking the seeded `Default Admin Key`.
 
-> There is no application `ENCRYPTION_KEY` — OpenWA does not encrypt data at rest (see §4.4). The rotation cadences above are operational recommendations, not enforced by the app.
+> There is no application `ENCRYPTION_KEY` — NG WhatsApp Gateway does not encrypt data at rest (see §4.4). The rotation cadences above are operational recommendations, not enforced by the app.
 
 ### Environment Variables Security
 
@@ -677,7 +677,7 @@ docker secret create db_password ./secret.txt
 
 ### Docker Secrets
 
-> **Caveat:** the `*_FILE` convention shown below requires a secret-file reader in the app (see "Reading Secrets" below), which is **not currently implemented** — OpenWA reads secrets straight from environment variables. Until that helper exists, pass secrets as plain env vars (e.g. an `.env` file with restricted permissions) rather than `_FILE` paths.
+> **Caveat:** the `*_FILE` convention shown below requires a secret-file reader in the app (see "Reading Secrets" below), which is **not currently implemented** — NG WhatsApp Gateway reads secrets straight from environment variables. Until that helper exists, pass secrets as plain env vars (e.g. an `.env` file with restricted permissions) rather than `_FILE` paths.
 
 ```yaml
 # Illustrative overlay — not the docker-compose.yml shipped in this repo
@@ -699,7 +699,7 @@ secrets:
 
 ### Reading Secrets in Application
 
-> **Not implemented as shown.** OpenWA does **not** read `<NAME>_FILE` Docker-secret files — there is no `getSecret()` helper today. Secrets come straight from `process.env`, layered at boot as `process.env` → `.env` → `data/.env.generated` (`override:false`, so a real environment value wins). The function below is a suggested pattern to add if you want Docker-secret `_FILE` support; as-is, `DATABASE_PASSWORD_FILE` is not consulted.
+> **Not implemented as shown.** NG WhatsApp Gateway does **not** read `<NAME>_FILE` Docker-secret files — there is no `getSecret()` helper today. Secrets come straight from `process.env`, layered at boot as `process.env` → `.env` → `data/.env.generated` (`override:false`, so a real environment value wins). The function below is a suggested pattern to add if you want Docker-secret `_FILE` support; as-is, `DATABASE_PASSWORD_FILE` is not consulted.
 
 ```typescript
 // config/secrets.ts
@@ -728,7 +728,7 @@ const masterKey = getSecret('API_MASTER_KEY');
 
 ### Key Rotation Procedure
 
-> **Not applicable today.** OpenWA stores no encrypted-at-rest data (see §4.4), so there is no data-encryption key to rotate and no `rotateEncryptionKey()` in the codebase. The flow below is illustrative for if/when field-level encryption is added. To rotate the key seeded from `API_MASTER_KEY`, mint a new ADMIN key through the API-key endpoints (§4.2) and revoke the seeded one; editing the env var has no effect after first boot. Rotating `API_KEY_PEPPER` invalidates every existing key hash; see §4.4 for the recovery.
+> **Not applicable today.** NG WhatsApp Gateway stores no encrypted-at-rest data (see §4.4), so there is no data-encryption key to rotate and no `rotateEncryptionKey()` in the codebase. The flow below is illustrative for if/when field-level encryption is added. To rotate the key seeded from `API_MASTER_KEY`, mint a new ADMIN key through the API-key endpoints (§4.2) and revoke the seeded one; editing the env var has no effect after first boot. Rotating `API_KEY_PEPPER` invalidates every existing key hash; see §4.4 for the recovery.
 
 ```mermaid
 flowchart TB
@@ -945,7 +945,7 @@ flowchart TB
 
 ### Emergency Contacts
 
-A template for an operator to fill in and keep outside the repository — OpenWA ships no
+A template for an operator to fill in and keep outside the repository — NG WhatsApp Gateway ships no
 `config/incident-response.yml` and reads no such file. The only contact the project itself
 publishes is the vulnerability-reporting channel in [SECURITY.md](../SECURITY.md); the on-call,
 channel and status-page entries below are placeholders with no upstream default.

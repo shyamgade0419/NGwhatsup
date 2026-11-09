@@ -19774,14 +19774,14 @@
           },
           "secret": {
             "type": "string",
-            "description": "Secret key for HMAC signature verification. Never returned by any webhook route; it is used to compute the `X-OpenWA-Signature: sha256=<hex>` header on every delivery.",
+            "description": "Secret key for HMAC signature verification. Never returned by any webhook route; it is used to compute the `X-NG-Signature: sha256=<hex>` header on every delivery.",
             "minLength": 16,
             "maxLength": 255,
             "example": "your-webhook-signing-secret"
           },
           "headers": {
             "type": "object",
-            "description": "Custom headers to include in webhook requests. Names must be unique ignoring case. Never returned by any webhook route. At delivery, `content-type`, `user-agent` and `x-openwa-*` names are stripped so a custom header cannot shadow a system one, and so are the connection-level names the HTTP client owns (`connection`, `content-length`, `expect`, `keep-alive`, `te`, `trailer`, `transfer-encoding`, `upgrade`).",
+            "description": "Custom headers to include in webhook requests. Names must be unique ignoring case. Never returned by any webhook route. At delivery, `content-type`, `user-agent` and `x-ng-*` names are stripped so a custom header cannot shadow a system one, and so are the connection-level names the HTTP client owns (`connection`, `content-length`, `expect`, `keep-alive`, `te`, `trailer`, `transfer-encoding`, `upgrade`).",
             "example": {
               "X-Custom-Header": "value"
             }

@@ -91,7 +91,7 @@ afterEach(() => {
   updateStatus = 200;
   updateGate = undefined;
   updatePaths.length = 0;
-  window.sessionStorage.removeItem('openwa_api_key');
+  window.sessionStorage.removeItem('ng_api_key');
 });
 
 function renderApiKeys(): void {
@@ -515,11 +515,11 @@ test('a refused update keeps the editor open and shows the reason', async () => 
 });
 
 test('editing the key the dashboard is signed in with warns before saving', async () => {
-  window.sessionStorage.setItem('openwa_api_key', 'owa_k1abXXXXYYYYZZZZ');
+  window.sessionStorage.setItem('ng_api_key', 'owa_k1abXXXXYYYYZZZZ');
   await openEdit(billingBot);
   rtl.screen.getByText(/This dashboard is signed in with this key/);
   rtl.cleanup();
-  window.sessionStorage.setItem('openwa_api_key', 'owa_k1zzXXXXYYYYZZZZ');
+  window.sessionStorage.setItem('ng_api_key', 'owa_k1zzXXXXYYYYZZZZ');
   await openEdit(billingBot);
   assert.equal(rtl.screen.queryByText(/This dashboard is signed in with this key/) === null, true);
 });

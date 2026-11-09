@@ -1,20 +1,20 @@
-# OpenWA on Coolify, built from THIS repository (not a public image), for NG Home's WhatsApp messages.
+# NG WhatsApp Gateway on Coolify, built from THIS repository (not a public image), for NG Home's WhatsApp messages.
 #
 # In Coolify: + New -> Resource -> Private Repository (GitHub) -> pick this repo, branch main ->
 #   Build Pack: Docker Compose, Base Directory: /, Docker Compose Location: /docker-compose.coolify.yml
-# Then set the environment variable OPENWA_API_KEY (a long random secret, 40+ characters) and give the "openwa"
+# Then set the environment variable NG_WA_API_KEY (a long random secret, 40+ characters) and give the "ng-whatsapp"
 # service the domain https://wa.yourdomain.in:2785
 #
 # One SQLite database inside the data volume is plenty for one WhatsApp number. The volume holds the WhatsApp link,
 # so it survives redeploys: never delete it.
 
 services:
-  openwa:
+  ng-whatsapp:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    # Same container hardening as OpenWA's own quick-start compose (docker-compose.dev.yml).
+    # Same container hardening as the upstream quick-start compose (docker-compose.dev.yml).
     security_opt:
       - 'no-new-privileges:true'
     cap_drop:
@@ -34,7 +34,7 @@ services:
     expose:
       - '2785'
     volumes:
-      - openwa-data:/app/data
+      - ng-whatsapp-data:/app/data
     environment:
       - NODE_ENV=development
       - TZ=Asia/Kolkata
@@ -56,11 +56,11 @@ services:
       # Gentle on a number that is new to automation: a daily allowance that grows as the session ages.
       - SEND_PACING_ENABLED=true
       # The admin key, fixed here so you know it (it is only read the first time the gateway starts).
-      - API_MASTER_KEY=${OPENWA_API_KEY}
+      - API_MASTER_KEY=${NG_WA_API_KEY}
       # The API docs page is not needed on the public internet.
       - ENABLE_SWAGGER=false
       # Updates are chosen by you, not announced by the gateway.
       - UPDATE_CHECK_ENABLED=false
 
 volumes:
-  openwa-data:
+  ng-whatsapp-data:

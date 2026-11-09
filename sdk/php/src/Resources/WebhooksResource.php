@@ -87,7 +87,7 @@ class WebhooksResource
     }
 
     /**
-     * A `secret` in $body signs every delivery as `X-OpenWA-Signature: sha256=<hex>`. The gateway
+     * A `secret` in $body signs every delivery as `X-NG-Signature: sha256=<hex>`. The gateway
      * enforces a 16-character minimum on it and answers 400 below that; omit it for unsigned
      * deliveries. Neither `secret` nor `headers` is returned by a read.
      *

@@ -10,7 +10,7 @@ _SIGNATURE = re.compile(r"sha256=([0-9a-fA-F]{64})")
 
 
 def verify_webhook_signature(raw_body: bytes | str, signature: str | None, secret: str) -> bool:
-    """Check a delivery's ``X-OpenWA-Signature`` header (``sha256=<hex HMAC-SHA256>``) against the
+    """Check a delivery's ``X-NG-Signature`` header (``sha256=<hex HMAC-SHA256>``) against the
     webhook secret.
 
     Pass the raw request body exactly as received; a re-serialized parse can differ byte for byte

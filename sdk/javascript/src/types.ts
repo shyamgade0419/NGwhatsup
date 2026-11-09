@@ -1021,7 +1021,7 @@ export interface CreateWebhookRequest {
   url: string;
   events?: WebhookEvent[];
   /**
-   * HMAC secret; signed as `X-OpenWA-Signature: sha256=…`. At least 16 characters, or the gateway
+   * HMAC secret; signed as `X-NG-Signature: sha256=…`. At least 16 characters, or the gateway
    * answers 400. Omit for unsigned deliveries. Never returned by a read.
    */
   secret?: string;

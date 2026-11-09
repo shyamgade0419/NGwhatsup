@@ -61,7 +61,7 @@ const emptyKeyForm = { name: '', role: 'operator', allowedSessions: [] as string
 // The key this dashboard signed in with: the list only carries each key's prefix, which is the first
 // 12 characters of the raw key.
 function isSignedInKey(apiKey: ApiKey): boolean {
-  return !!apiKey.keyPrefix && !!sessionStorage.getItem('openwa_api_key')?.startsWith(apiKey.keyPrefix);
+  return !!apiKey.keyPrefix && !!sessionStorage.getItem('ng_api_key')?.startsWith(apiKey.keyPrefix);
 }
 
 // The first IP or chat line the gateway would refuse, so the form can name it instead of the bare

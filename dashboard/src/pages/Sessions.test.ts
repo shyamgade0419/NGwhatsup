@@ -353,8 +353,8 @@ before(async () => {
   installFetchStub();
   // RoleProvider seeds from sessionStorage; 'admin' makes canWrite true, or every action button
   // (New Session, Stop/Start, Unlink, Delete, Kill Stuck) is hidden and there is nothing to test.
-  window.sessionStorage.setItem('openwa_user_role', 'admin');
-  // Deliberately NOT setting sessionStorage['openwa_api_key'] here: useWebSocket.connect() bails
+  window.sessionStorage.setItem('ng_user_role', 'admin');
+  // Deliberately NOT setting sessionStorage['ng_api_key'] here: useWebSocket.connect() bails
   // with a console.warn when it's absent, so the page opens no socket. A case that drives the live
   // feed sets the key itself; the client it reaches is the socket.io double, which dials nothing.
   // Awaited, not just imported: catalogues are fetched now, so the import only starts the load and
@@ -371,7 +371,7 @@ afterEach(() => {
   // A test that failed while it held the retry pauses on a fake clock must not leave it to the next one.
   mock.timers.reset();
   rtl.cleanup();
-  window.sessionStorage.removeItem('openwa_api_key');
+  window.sessionStorage.removeItem('ng_api_key');
   resetSocketDouble();
   queryClient?.clear();
   queryClient = undefined;
@@ -557,7 +557,7 @@ test('an empty list shows the empty state, and a refused create does not take it
 test('a failed refetch keeps the rows, and a search that matches none still shows the empty state', async () => {
   const { screen, fireEvent, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   holdConnect();
   renderSessions();
 
@@ -682,7 +682,7 @@ test('saving proxy settings issues PATCH /api/sessions/:id/proxy', async () => {
 test('an operator key is not offered proxy writes, in the create modal or the proxy modal', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   try {
     renderSessions();
     await screen.findByText('new-device');
@@ -701,7 +701,7 @@ test('an operator key is not offered proxy writes, in the create modal or the pr
     assert.equal(toggle.disabled, true);
     assert.equal(within(dialog).queryByRole('button', { name: 'Save' }) === null, true);
   } finally {
-    window.sessionStorage.setItem('openwa_user_role', 'admin');
+    window.sessionStorage.setItem('ng_user_role', 'admin');
   }
 });
 
@@ -710,7 +710,7 @@ test('an operator key is not offered proxy writes, in the create modal or the pr
 test('a session-scoped admin key is offered neither New Session nor a proxy Save', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_key_scoped', 'true');
+  window.sessionStorage.setItem('ng_key_scoped', 'true');
   try {
     renderSessions();
     await screen.findByText('new-device');
@@ -724,7 +724,7 @@ test('a session-scoped admin key is offered neither New Session nor a proxy Save
     assert.equal(toggle.disabled, true);
     assert.equal(within(dialog).queryByRole('button', { name: 'Save' }) === null, true);
   } finally {
-    window.sessionStorage.removeItem('openwa_key_scoped');
+    window.sessionStorage.removeItem('ng_key_scoped');
   }
 });
 
@@ -885,7 +885,7 @@ for (const [status, cleared] of [
 ] as const) {
   test(`a shown pairing code is ${cleared ? 'cleared' : 'kept'} when the session moves on to ${status}`, async () => {
     const { screen, fireEvent, within } = rtl;
-    window.sessionStorage.setItem('openwa_api_key', 'test-key');
+    window.sessionStorage.setItem('ng_api_key', 'test-key');
     const { phoneInput, generate } = await openPairingPhoneField();
     fireEvent.change(phoneInput, { target: { value: '6281234567890' } });
     fireEvent.click(generate);
@@ -1335,7 +1335,7 @@ function pushSessionStatus(sessionId: string, status: string): void {
 test('a failed status push closes that session QR modal', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   renderSessions();
 
   const card = (await screen.findByText('new-device')).closest('.session-card') as HTMLElement;
@@ -1354,7 +1354,7 @@ test('a failed status push closes that session QR modal', async () => {
 test('a session last active a few hours ago reads in hours, not as a date', async () => {
   const { screen, within } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const lastActive = new Date(Date.now() - 5 * 3_600_000).toISOString();
   SESSIONS.push({
     ...SESSION_QR,
@@ -1378,7 +1378,7 @@ test('a session last active a few hours ago reads in hours, not as a date', asyn
 test('a ready push re-reads the list so a newly linked card shows its phone', async () => {
   const { screen, within, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-linking-1', name: 'linking', status: 'authenticating' };
   SESSIONS.push(row);
   try {
@@ -1399,7 +1399,7 @@ test('a ready push re-reads the list so a newly linked card shows its phone', as
 test('a disconnected push closes the QR modal once the re-read shows no engine', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-dropped-1', name: 'dropped', status: 'qr_ready', engineLoaded: true };
   SESSIONS.push(row);
   try {
@@ -1424,7 +1424,7 @@ test('a disconnected push closes the QR modal once the re-read shows no engine',
 test('a QR pushed while the disconnect re-read is in flight keeps the modal open', async () => {
   const { screen, fireEvent, within, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-raced-1', name: 'raced', status: 'qr_ready', engineLoaded: true };
   SESSIONS.push(row);
   try {
@@ -1475,7 +1475,7 @@ test('a QR pushed while the disconnect re-read is in flight keeps the modal open
 test('a disconnected push keeps the QR modal while the engine is still registered', async () => {
   const { screen, fireEvent, within } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-backoff-1', name: 'backoff', status: 'qr_ready', engineLoaded: true };
   SESSIONS.push(row);
   try {
@@ -1503,7 +1503,7 @@ test('a disconnected push keeps the QR modal while the engine is still registere
 test('a disconnected push blanks the displayed QR code', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-blank-1', name: 'blanked', status: 'qr_ready', engineLoaded: true };
   SESSIONS.push(row);
   try {
@@ -1527,7 +1527,7 @@ test('a disconnected push blanks the displayed QR code', async () => {
 test('a disconnected push keeps the QR modal when the re-read fails', async () => {
   const { screen, fireEvent, within, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-unknown-1', name: 'unknown', status: 'qr_ready', engineLoaded: true };
   SESSIONS.push(row);
   try {
@@ -1554,7 +1554,7 @@ test('a disconnected push keeps the QR modal when the re-read fails', async () =
 test('a disconnect re-read overtaken by a newer read still closes the QR modal', async () => {
   const { screen, fireEvent, within, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = {
     ...SESSION_QR,
     id: 'sess-overtaken-1',
@@ -1599,7 +1599,7 @@ test('a disconnect re-read overtaken by a newer read still closes the QR modal',
 test('a list read that answers after a newer one does not overwrite it', async () => {
   const { screen, within, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-flap-1', name: 'flapping', status: 'authenticating' };
   SESSIONS.push(row);
   try {
@@ -1639,7 +1639,7 @@ test('a list read that answers after a newer one does not overwrite it', async (
 test('a list read that started before a status push does not undo the pushed status', async () => {
   const { screen, within, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-backoff-2', name: 'bouncing', status: 'ready', phone: '15550004444' };
   SESSIONS.push(row);
   try {
@@ -1676,7 +1676,7 @@ test('a list read that started before a status push does not undo the pushed sta
 test('a list read in flight does not undo a create, a stop or a delete', async () => {
   const { screen, fireEvent, within, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const qrRow = { ...SESSION_QR };
   const staleIndex = SESSIONS.indexOf(SESSION_STALE_ENGINE);
   try {
@@ -1735,7 +1735,7 @@ test('a list read in flight does not undo a create, a stop or a delete', async (
 test('a list read in flight does not undo a start', async () => {
   const { screen, fireEvent, within, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   startResult = { answer: { status: 'initializing', engineLoaded: true } };
   SESSIONS.push({ ...SESSION_QR, id: 'sess-start-race', name: 'start-race', status: 'created', engineLoaded: false });
   const releases: (() => void)[] = [];
@@ -1776,7 +1776,7 @@ test('a list read in flight does not undo a start', async () => {
 test('a status push landing right after a create or a delete keeps what it wrote', async () => {
   const { screen, fireEvent, within, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const staleIndex = SESSIONS.indexOf(SESSION_STALE_ENGINE);
   try {
     renderSessions();
@@ -1811,7 +1811,7 @@ test('a status push landing right after a create or a delete keeps what it wrote
 test('a duplicate push right after a list render is still recognised as a duplicate', async () => {
   const { screen, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-dup-1', name: 'dup-probe', status: 'authenticating' };
   SESSIONS.push(row);
   // Emitted outside act, so React commits and runs effects on its own schedule, as in the browser.
@@ -1853,7 +1853,7 @@ test('a duplicate push right after a list render is still recognised as a duplic
 test('an open detail modal follows its session status and phone', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   const row: Session = { ...SESSION_QR, id: 'sess-viewed-1', name: 'viewed', status: 'authenticating' };
   SESSIONS.push(row);
   try {
@@ -1904,7 +1904,7 @@ test('Refresh on a feed that never connected re-reads the list once the socket i
   const { screen, fireEvent, waitFor, act, within } = rtl;
   resetFetchCalls();
   sessionListFailures = 1;
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   holdConnect();
   renderSessions();
 
@@ -1946,7 +1946,7 @@ test('a failed mount read is retried when the feed first connects after its own 
   const { screen, waitFor, act } = rtl;
   resetFetchCalls();
   sessionListFailures = 1;
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   holdConnect();
   renderSessions();
 
@@ -1973,7 +1973,7 @@ test('a later failure on the same connection is retried too, once the first reco
   const { screen, waitFor, act } = rtl;
   resetFetchCalls();
   sessionListFailures = 1;
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   holdConnect();
   renderSessions();
 
@@ -2015,7 +2015,7 @@ test('a connect retries a failed list read once, even when each failure carries 
   resetFetchCalls();
   sessionListFailures = 10;
   distinctFailureMessages = true;
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   holdConnect();
   renderSessions();
 
@@ -2034,7 +2034,7 @@ test('a connect retries a failed list read once, even when each failure carries 
 test('a read-only key gets no Show QR button, since the QR is operator-only', async () => {
   const { screen, within } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_user_role', 'viewer');
+  window.sessionStorage.setItem('ng_user_role', 'viewer');
   try {
     renderSessions();
     const card = (await screen.findByText('new-device')).closest('.session-card') as HTMLElement;
@@ -2042,7 +2042,7 @@ test('a read-only key gets no Show QR button, since the QR is operator-only', as
     assert.ok(card.querySelector('.qr-placeholder'));
     assert.equal(within(card).queryByRole('button', { name: 'Show QR' }) === null, true);
   } finally {
-    window.sessionStorage.setItem('openwa_user_role', 'admin');
+    window.sessionStorage.setItem('ng_user_role', 'admin');
   }
 });
 
@@ -2390,7 +2390,7 @@ const feedFrames = (): unknown[] =>
 test('the page joins the live session feed once connected, with the events it renders', async () => {
   const { screen, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   renderSessions();
 
   await screen.findByText('new-device');
@@ -2402,7 +2402,7 @@ test('the page joins the live session feed once connected, with the events it re
 test('a key refused the wildcard room joins each listed session instead', async () => {
   const { screen, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   renderSessions();
 
   await screen.findByText('new-device');
@@ -2428,7 +2428,7 @@ test('a key refused the wildcard room joins each listed session instead', async 
 test('the list is read again once a retried feed subscribe joins', async () => {
   const { screen, waitFor, act } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   renderSessions();
 
   await screen.findByText('new-device');

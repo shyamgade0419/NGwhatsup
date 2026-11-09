@@ -2,7 +2,7 @@
 
 ## 11.1 Overview
 
-This document contains Standard Operating Procedures (SOP) for OpenWA operations, including incident response, maintenance procedures, and troubleshooting guides.
+This document contains Standard Operating Procedures (SOP) for NG WhatsApp Gateway operations, including incident response, maintenance procedures, and troubleshooting guides.
 
 ### Runbook Structure
 
@@ -370,7 +370,7 @@ curl -X PUT http://localhost:2785/api/sessions/{sessionId}/webhooks/{webhookId} 
 #    Rows stay inside the ADMIN key's allowedSessions; sessionId, webhookId and ids only narrow
 #    the batch. The webhook must be active and still subscribed to the event (re-enable it if
 #    step 5C left it off). Each row gets one direct POST to the webhook's current URL with its
-#    stored X-OpenWA-Idempotency-Key; a delivered row is removed, along with the copy the sweep
+#    stored X-NG-Idempotency-Key; a delivered row is removed, along with the copy the sweep
 #    still held for that event, and a failed one stays. A sweep replay already under way can still
 #    POST the event again under the same key, so receivers must deduplicate.
 curl -X POST http://localhost:2785/api/webhooks/delivery-failures/redrive \
@@ -638,7 +638,7 @@ docker compose run --rm --no-deps --entrypoint /app/scripts/restore.sh \
 # postgres:16-alpine pulled before August 2025 is one. Pull it again and recreate the container on its
 # kept volume (compose: `docker compose --profile postgres pull postgres` and the `up -d` below;
 # dashboard-created: `docker pull postgres:16-alpine` and `docker rm -f openwa-postgres`, then start
-# OpenWA once so it creates the container again, and stop it), then run these commands again
+# NG WhatsApp Gateway once so it creates the container again, and stop it), then run these commands again
 docker compose --profile postgres up -d postgres   # dashboard-created: docker start openwa-postgres
 docker exec openwa-postgres sh -c 'until pg_isready -q -U "$POSTGRES_USER"; do sleep 1; done'
 docker exec openwa-postgres sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres \
@@ -652,7 +652,7 @@ tar -xzOf "$BACKUP_DIR/openwa-backup-<timestamp>.tar.gz" ./database.sql | sed '/
 # An external PostgreSQL server: rename the upgraded database and create an empty one under the
 # DATABASE_NAME the app uses in the same way, then load the dump into it, with a psql that reads
 # \restrict as above (restore.sh refuses an older one on its PATH). DATABASE_URL is not an
-# OpenWA setting: fill in your own URL for that database, such as
+# NG WhatsApp Gateway setting: fill in your own URL for that database, such as
 # postgres://<user>@<host>:5432/<database>, with the password in PGPASSWORD. With DATABASE_SSL=true,
 # run psql under PGSSLMODE=verify-full (require when DATABASE_SSL_REJECT_UNAUTHORIZED=false), as the
 # command restore.sh prints does; libpq's default sslmode=prefer accepts any certificate. verify-full
@@ -672,7 +672,7 @@ tar -xzOf "$BACKUP_DIR/openwa-backup-<timestamp>.tar.gz" ./database.sql | sed '/
 # when they live in it, are dropped from the copy with its trigram index (idx_messages_body_trgm), and
 # such a pgcrypto with the copy's id column defaults, so the dump can create them again. A load that
 # stops at "cannot drop extension" means another schema uses them and nothing was changed; its DETAIL
-# lines name what. When that is another OpenWA deployment's idx_messages_body_trgm, drop that index and
+# lines name what. When that is another NG WhatsApp Gateway deployment's idx_messages_body_trgm, drop that index and
 # load again: that deployment's contains search then reads its whole messages table until its next
 # start builds the index again, and answers 501 while it builds. Drop anything else named first and
 # recreate it after the load. Into an empty database, an extension it uses (pg_trgm, unaccent) that
@@ -979,7 +979,7 @@ docker compose down
 #    on such a psql before anything is renamed; a postgres:16-alpine pulled before August 2025 is one.
 #    Pull it again and recreate the container on its kept volume (compose: `docker compose --profile
 #    postgres pull postgres` and the `up -d` below; dashboard-created: `docker pull postgres:16-alpine`
-#    and `docker rm -f openwa-postgres`, then start OpenWA once so it creates the container again, and
+#    and `docker rm -f openwa-postgres`, then start NG WhatsApp Gateway once so it creates the container again, and
 #    stop it), then run these commands again
 docker compose --profile postgres up -d postgres   # dashboard-created: docker start openwa-postgres
 docker exec openwa-postgres sh -c 'until pg_isready -q -U "$POSTGRES_USER"; do sleep 1; done'
@@ -994,7 +994,7 @@ tar -xzOf ./backups/openwa-backup-<timestamp>.tar.gz ./database.sql | sed '/^SET
 #    An external PostgreSQL server: rename the current database and create an empty one under the
 #    DATABASE_NAME the app uses in the same way, then load the dump into it, with a psql that reads
 #    \restrict as above (restore.sh refuses an older one on its PATH). DATABASE_URL is not an
-#    OpenWA setting: fill in your own URL for that database, such as
+#    NG WhatsApp Gateway setting: fill in your own URL for that database, such as
 #    postgres://<user>@<host>:5432/<database>, with the password in PGPASSWORD. With
 #    DATABASE_SSL=true, run psql under PGSSLMODE=verify-full (require when
 #    DATABASE_SSL_REJECT_UNAUTHORIZED=false), as the command restore.sh prints does; libpq's default
@@ -1015,7 +1015,7 @@ tar -xzOf ./backups/openwa-backup-<timestamp>.tar.gz ./database.sql | sed '/^SET
 #    dropped from the copy with its trigram index (idx_messages_body_trgm), and such a pgcrypto with
 #    the copy's id column defaults, so the dump can create them again. A load that stops at "cannot
 #    drop extension" means another schema uses them and nothing was changed; its DETAIL lines name
-#    what. When that is another OpenWA deployment's idx_messages_body_trgm, drop that index and load
+#    what. When that is another NG WhatsApp Gateway deployment's idx_messages_body_trgm, drop that index and load
 #    again: that deployment's contains search then reads its whole messages table until its next
 #    start builds the index again, and answers 501 while it builds. Drop anything else named first
 #    and recreate it after the load. Into an empty database, an extension it uses (pg_trgm, unaccent)

@@ -123,7 +123,7 @@ try {
 
 ## Receiving webhooks
 
-A webhook configured with a secret signs each delivery in its `X-OpenWA-Signature` header. Check it
+A webhook configured with a secret signs each delivery in its `X-NG-Signature` header. Check it
 with `WebhookSignature::verify` against the raw request body, exactly as received, and decode the
 JSON only after the check passes: a re-encoded body can differ byte for byte and will not verify.
 The helper returns `false` for a missing, malformed or non-matching signature.

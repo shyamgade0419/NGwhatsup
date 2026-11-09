@@ -161,7 +161,7 @@ it into Postgres); `match=contains` folds a few letters differently on each, see
   Docker image and the official Node builds include FTS5, so this only affects a custom-compiled
   SQLite.)
 - **Export/import round-trip.** Because the index is a derived, DB-maintained structure (not a
-  separate data store), an OpenWA export/import — which clears the `messages` table and re-inserts —
+  separate data store), an NG WhatsApp Gateway export/import — which clears the `messages` table and re-inserts —
   leaves FTS correct on both dialects: Postgres regenerates the `body_ts` column from the re-inserted
   rows, and SQLite's triggers repopulate `messages_fts` on the re-inserts. No separate search reindex
   step is needed after a restore or a dialect migration. This is covered by the dual-DB test suite.
@@ -345,7 +345,7 @@ answering its health probe (a boot that outlasts the Helm startup probe is resta
   The build lock is a session-level advisory lock, as the boot migration lock is
   ([05 - Database Design](./05-database-design.md#56-migration-strategy)): a PgBouncer in transaction
   pooling mode runs each transaction on whichever server connection is free, so neither lock stays with
-  the session that took it. Point OpenWA at PostgreSQL directly or at a pooler in session mode.
+  the session that took it. Point NG WhatsApp Gateway at PostgreSQL directly or at a pooler in session mode.
 
 **Turning it off** later stops `match=contains` (`501` again) but keeps the index, and with it the cost
 on every write, so turning it back on needs no rebuild. To reclaim the space, drop it by hand:
