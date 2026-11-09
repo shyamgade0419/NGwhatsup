@@ -57,7 +57,7 @@ flowchart LR
 
 ### Pain Points Addressed
 
-| Pain Point                          | NG WhatsApp Gateway Solution              |
+| Pain Point                          | NG WhatsApp Gateway Solution |
 | ----------------------------------- | ---------------------------- |
 | WAHA Plus charges for multi-session | Free unlimited multi-session |
 | Dashboard only in paid tiers        | Free dashboard               |
@@ -205,15 +205,15 @@ quadrantChart
 ### Feature Comparison
 
 | Feature       | NG WhatsApp Gateway | WAHA Core | WAHA Plus | Whapi.cloud |
-| ------------- | ------ | --------- | --------- | ----------- |
-| Price         | Free   | Free      | $50+/mo   | $30+/mo     |
-| Open Source   | ✅     | ❌        | ❌        | ❌          |
-| Multi-session | ✅     | Limited   | ✅        | ✅          |
-| Dashboard     | ✅     | ❌        | ✅        | ✅          |
-| PostgreSQL    | ✅     | ❌        | ✅        | N/A         |
-| Webhook UI    | ✅     | ❌        | ✅        | ✅          |
-| Self-hosted   | ✅     | ✅        | ✅        | ❌          |
-| Source code   | ✅     | ❌        | ❌        | ❌          |
+| ------------- | ------------------- | --------- | --------- | ----------- |
+| Price         | Free                | Free      | $50+/mo   | $30+/mo     |
+| Open Source   | ✅                  | ❌        | ❌        | ❌          |
+| Multi-session | ✅                  | Limited   | ✅        | ✅          |
+| Dashboard     | ✅                  | ❌        | ✅        | ✅          |
+| PostgreSQL    | ✅                  | ❌        | ✅        | N/A         |
+| Webhook UI    | ✅                  | ❌        | ✅        | ✅          |
+| Self-hosted   | ✅                  | ✅        | ✅        | ❌          |
+| Source code   | ✅                  | ❌        | ❌        | ❌          |
 
 ## 1.8 Technology Decisions
 

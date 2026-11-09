@@ -6,8 +6,8 @@ NG WhatsApp Gateway signs webhook deliveries when a webhook is configured with a
 
 NG WhatsApp Gateway sends these system headers with webhook deliveries:
 
-| Header                     | Description                                                        |
-| -------------------------- | ------------------------------------------------------------------ |
+| Header                 | Description                                                        |
+| ---------------------- | ------------------------------------------------------------------ |
 | `X-NG-Signature`       | HMAC-SHA256 signature, present only when the webhook has a secret  |
 | `X-NG-Event`           | Event name, for example `message.received`                         |
 | `X-NG-Idempotency-Key` | Stable key for duplicate detection                                 |

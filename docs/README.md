@@ -52,8 +52,8 @@
 | 19  | [Plugin Architecture](./19-plugin-architecture.md)                       | Extensibility concepts                                                             |
 | 20  | [Community Guidelines](./20-community-guidelines.md)                     | Contribution and governance                                                        |
 | 21  | [Glossary](./21-glossary.md)                                             | Terms and definitions                                                              |
-| 22  | [n8n Integration](./22-n8n-integration.md)                               | n8n community nodes for NG WhatsApp Gateway                                                     |
-| 23  | [Community Integrations](./23-community-integrations.md)                 | Third-party adapters built on the NG WhatsApp Gateway API                                       |
+| 22  | [n8n Integration](./22-n8n-integration.md)                               | n8n community nodes for NG WhatsApp Gateway                                        |
+| 23  | [Community Integrations](./23-community-integrations.md)                 | Third-party adapters built on the NG WhatsApp Gateway API                          |
 | 24  | [MCP Integration](./24-mcp-integration.md)                               | Model Context Protocol tools and auth model                                        |
 | 25  | [Integration Fabric](./25-integration-fabric.md)                         | Inbound webhook substrate for plugin integrations                                  |
 | 26  | [Global Search](./26-global-search.md)                                   | Cross-session message search and the provider model                                |
@@ -65,13 +65,13 @@
 
 **Examples**
 
-| Example                                                                        | Description                                                              |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| [Session Phone-Number Pairing](./examples/session-phone-number-pairing.md)     | Link an existing WhatsApp account by phone number instead of scanning QR |
-| [Chat History Limits](./examples/chat-history-limits.md)                       | Understand local message history vs bounded live WhatsApp history        |
-| [Webhook Signature Verification](./examples/webhook-signature-verification.md) | Verify signed NG WhatsApp Gateway webhook deliveries in Node.js and Python            |
-| [n8n Appointment Booking Workflow](./examples/n8n-appointment-booking.md)      | Build an appointment-booking flow with NG WhatsApp Gateway and n8n                    |
-| [n8n to Discord Workflow](./examples/n8n/README.md)                            | Forward incoming WhatsApp messages to Discord with n8n's built-in nodes  |
+| Example                                                                        | Description                                                                |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [Session Phone-Number Pairing](./examples/session-phone-number-pairing.md)     | Link an existing WhatsApp account by phone number instead of scanning QR   |
+| [Chat History Limits](./examples/chat-history-limits.md)                       | Understand local message history vs bounded live WhatsApp history          |
+| [Webhook Signature Verification](./examples/webhook-signature-verification.md) | Verify signed NG WhatsApp Gateway webhook deliveries in Node.js and Python |
+| [n8n Appointment Booking Workflow](./examples/n8n-appointment-booking.md)      | Build an appointment-booking flow with NG WhatsApp Gateway and n8n         |
+| [n8n to Discord Workflow](./examples/n8n/README.md)                            | Forward incoming WhatsApp messages to Discord with n8n's built-in nodes    |
 
 ## Quick Start
 
