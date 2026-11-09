@@ -353,11 +353,11 @@ describeQueueOn('Queued dispatch paths (e2e, QUEUE_ENABLED=true)', () => {
     // The WebhookProcessor worker picked the job up and delivered it over HTTP.
     await waitFor(() => received.length >= 1);
     expect(received[0].body.event).toBe('message.received');
-    expect(received[0].headers['x-openwa-event']).toBe('message.received');
+    expect(received[0].headers['x-ng-event']).toBe('message.received');
 
     // With the queue on, the worker is the only party that retires the delivery's outbox row. Left queued,
     // every reconciler sweep would replay the event to the receiver again.
-    const idempotencyKey = received[0].headers['x-openwa-idempotency-key'] as string;
+    const idempotencyKey = received[0].headers['x-ng-idempotency-key'] as string;
     await waitFor(async () => (await outboxRepo.findOneBy({ idempotencyKey }))?.state === 'dispatched');
     expect(await outboxRepo.findOneByOrFail({ idempotencyKey })).toMatchObject({ state: 'dispatched', payload: null });
   }, 30000);

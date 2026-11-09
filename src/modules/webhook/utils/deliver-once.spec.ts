@@ -61,7 +61,7 @@ describe('sanitizeCustomHeaders', () => {
         'X-Custom': 'v',
         Authorization: 'Bearer t',
         'Content-Type': 'text/plain',
-        'X-OpenWA-Event': 'x',
+        'X-NG-Event': 'x',
       }),
     ).toEqual({ 'X-Custom': 'v', Authorization: 'Bearer t' });
   });

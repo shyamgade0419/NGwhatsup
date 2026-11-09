@@ -1,8 +1,7 @@
 <p align="center">
-  <img src="logo/openwa_logo.webp" alt="OpenWA Logo" width="200"/>
 </p>
 
-<h1 align="center">OpenWA Documentation</h1>
+<h1 align="center">NG WhatsApp Gateway Documentation</h1>
 <p align="center">
   <strong>Open Source WhatsApp API Gateway</strong>
 </p>
@@ -53,8 +52,8 @@
 | 19  | [Plugin Architecture](./19-plugin-architecture.md)                       | Extensibility concepts                                                             |
 | 20  | [Community Guidelines](./20-community-guidelines.md)                     | Contribution and governance                                                        |
 | 21  | [Glossary](./21-glossary.md)                                             | Terms and definitions                                                              |
-| 22  | [n8n Integration](./22-n8n-integration.md)                               | n8n community nodes for OpenWA                                                     |
-| 23  | [Community Integrations](./23-community-integrations.md)                 | Third-party adapters built on the OpenWA API                                       |
+| 22  | [n8n Integration](./22-n8n-integration.md)                               | n8n community nodes for NG WhatsApp Gateway                                                     |
+| 23  | [Community Integrations](./23-community-integrations.md)                 | Third-party adapters built on the NG WhatsApp Gateway API                                       |
 | 24  | [MCP Integration](./24-mcp-integration.md)                               | Model Context Protocol tools and auth model                                        |
 | 25  | [Integration Fabric](./25-integration-fabric.md)                         | Inbound webhook substrate for plugin integrations                                  |
 | 26  | [Global Search](./26-global-search.md)                                   | Cross-session message search and the provider model                                |
@@ -70,8 +69,8 @@
 | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
 | [Session Phone-Number Pairing](./examples/session-phone-number-pairing.md)     | Link an existing WhatsApp account by phone number instead of scanning QR |
 | [Chat History Limits](./examples/chat-history-limits.md)                       | Understand local message history vs bounded live WhatsApp history        |
-| [Webhook Signature Verification](./examples/webhook-signature-verification.md) | Verify signed OpenWA webhook deliveries in Node.js and Python            |
-| [n8n Appointment Booking Workflow](./examples/n8n-appointment-booking.md)      | Build an appointment-booking flow with OpenWA and n8n                    |
+| [Webhook Signature Verification](./examples/webhook-signature-verification.md) | Verify signed NG WhatsApp Gateway webhook deliveries in Node.js and Python            |
+| [n8n Appointment Booking Workflow](./examples/n8n-appointment-booking.md)      | Build an appointment-booking flow with NG WhatsApp Gateway and n8n                    |
 | [n8n to Discord Workflow](./examples/n8n/README.md)                            | Forward incoming WhatsApp messages to Discord with n8n's built-in nodes  |
 
 ## Quick Start
@@ -80,8 +79,8 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/rmyndharis/OpenWA.git
-cd OpenWA
+git clone https://github.com/shyamgade0419/NGwhatsup.git
+cd NG WhatsApp Gateway
 
 # Install the locked dependencies (also installs dashboard dependencies)
 npm ci
@@ -105,8 +104,8 @@ Access:
 
 ```bash
 # Clone repository
-git clone https://github.com/rmyndharis/OpenWA.git
-cd OpenWA
+git clone https://github.com/shyamgade0419/NGwhatsup.git
+cd NG WhatsApp Gateway
 
 # Start services
 docker compose up -d
@@ -120,7 +119,7 @@ Access (the dashboard is bundled into the API and served on the same port):
 
 ### API Key
 
-OpenWA seeds a default API key on first run and writes it to:
+NG WhatsApp Gateway seeds a default API key on first run and writes it to:
 
 - `data/.api-key` (development)
 - `/app/data/.api-key` inside the API container when using Docker
@@ -155,7 +154,7 @@ curl http://localhost:2785/api/sessions/{sessionId}/qr \
 curl -X POST http://localhost:2785/api/sessions/{sessionId}/messages/send-text \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
-  -d '{"chatId": "628123456789@c.us", "text": "Hello from OpenWA!"}'
+  -d '{"chatId": "628123456789@c.us", "text": "Hello from NG WhatsApp Gateway!"}'
 ```
 
 ## WebSocket Example (Socket.IO)

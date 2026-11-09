@@ -4,7 +4,7 @@
 
 ```mermaid
 timeline
-    title OpenWA Release Timeline
+    title NG WhatsApp Gateway Release Timeline
 
     section v0.0.1 - MVP
         Month 1-3 : Foundation & Engine
@@ -580,7 +580,7 @@ in `0.2.2` and the five client SDKs across `0.7.3`–`0.8.19`; the rest remain o
 | Python SDK             | P2       | ✅ Shipped (`rmyndharis-openwa`)                   | Python client library           |
 | PHP SDK                | P2       | ✅ Shipped (`rmyndharis/openwa`)                   | PHP client library              |
 | Java SDK               | P2       | ✅ Shipped (`com.rmyndharis:openwa`)               | Java client library             |
-| Go SDK                 | P2       | ✅ Shipped (`github.com/rmyndharis/OpenWA/sdk/go`) | Go client library               |
+| Go SDK                 | P2       | ✅ Shipped (`github.com/shyamgade0419/NGwhatsup/sdk/go`) | Go client library               |
 | Postman Collection     | P1       | ◐ cURL collection (doc 07); Postman export TBD     | Ready-to-use API collection     |
 | Docs Site              | P1       | ☐ Open                                             | Documentation website           |
 | Video Tutorials        | P2       | ☐ Open                                             | Getting started video series    |
@@ -626,7 +626,7 @@ architecture and design rationale):
 > `supabase-otp-hook`, the second official ingress plugin — a different vehicle than the chatbot flow
 > builder this row originally named, but it is what proved the substrate generalizes to an independent
 > consumer. Adapters ship from the
-> [OpenWA-plugins](https://github.com/rmyndharis/OpenWA-plugins) catalog, so consult that repository for
+> [OpenWA-plugins](https://github.com/shyamgade0419/NGwhatsup-plugins) catalog, so consult that repository for
 > each plugin's declared capabilities. P4 remains open: the published SDK reference, a compatibility test
 > suite, and multi-node routing.
 
@@ -663,7 +663,7 @@ PR, and pushing the tag from `main` hands everything else to `.github/workflows/
 - Name the version wherever the text was written before it was known, in a docs commit on `main` ahead of
   the release commit: every `next` in the Release column of the Known Upgrade Hazards table in
   `docs/14-migration-guide.md`, one for each hazard the release added, and every clause that says
-  "after OpenWA <last>", "the release after <last>" or "newer than <last>", such as line 3 of
+  "after NG WhatsApp Gateway <last>", "the release after <last>" or "newer than <last>", such as line 3 of
   `sdk/README.md`, `docs/18-sdk-design.md` and the SDK READMEs, which becomes "<version> or later".
   `npm run test:docs` fails on a `next` row once `[Unreleased]` is empty, so a release commit that
   skips this fails its own CI.
@@ -828,7 +828,7 @@ v0.10.5 published its GitHub Release.
 
 Upgrading a Compose deployment that builds from source is `git pull && docker compose up -d --build`:
 the bundled `docker-compose.yml` **builds** the API service rather than pulling it, so
-`docker compose pull` is a no-op for OpenWA itself. A deployment whose `docker-compose.override.yml`
+`docker compose pull` is a no-op for NG WhatsApp Gateway itself. A deployment whose `docker-compose.override.yml`
 sets a published image (see the README) upgrades with `git pull` followed by
 `docker compose pull openwa-api && docker compose up -d --no-build` instead; `--build` there would
 build from source and tag the result with the published image name.

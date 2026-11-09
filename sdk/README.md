@@ -266,7 +266,7 @@ testing, retry, tracing, or metrics. See [`go/README.md`](go/README.md).
   retries a send-pacing `429` (`code: "SEND_PACING_LIMITED"`), honors
   `Retry-After`, and rewinds request bodies —
   still off unless you ask for it.
-- **Webhook signatures.** Every SDK verifies a delivery's `X-OpenWA-Signature`
+- **Webhook signatures.** Every SDK verifies a delivery's `X-NG-Signature`
   against the raw request body: `verifyWebhookSignature` (JavaScript),
   `verify_webhook_signature` (Python), `VerifyWebhookSignature` (Go),
   `WebhookSignature.verify` (Java) and `WebhookSignature::verify` (PHP). The

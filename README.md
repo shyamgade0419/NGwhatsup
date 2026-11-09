@@ -11,13 +11,13 @@ phone by scanning a QR code.
 
 1. In Coolify: **+ New → Resource → Git Repository (with GitHub App)**, pick this repository and the `main` branch.
 2. **Build Pack:** Docker Compose. **Docker Compose Location:** `/docker-compose.coolify.yml`.
-3. **Environment Variables:** set `OPENWA_API_KEY` to a long random secret (40+ characters). This is the key you enter in
+3. **Environment Variables:** set `NG_WA_API_KEY` to a long random secret (40+ characters). This is the key you enter in
    NG Home. Do not use the Lock option, so you can read it again later.
-4. **Domains:** give the `openwa` service your address with the port, for example `https://nghome-wa.novagade.in:2785`.
+4. **Domains:** give the `ng-whatsapp` service your address with the port, for example `https://nghome-wa.novagade.in:2785`.
    In Cloudflare keep that record on **DNS only** (grey cloud).
 5. Deploy. Open the address in a browser and sign in with the key to see the dashboard.
 
-The `openwa-data` volume holds the WhatsApp link and the database. Keep it: deleting it means scanning the QR code again.
+The `ng-whatsapp-data` volume holds the WhatsApp link and the database. Keep it: deleting it means scanning the QR code again.
 
 ## Notes
 

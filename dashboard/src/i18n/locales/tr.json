@@ -701,7 +701,7 @@
       "hint": "İsteğe bağlı. Kaydedilen değerler bir daha gösterilmez.",
       "editHint": "Kayıtlı gizli anahtar ve başlıklar hiçbir zaman gösterilmez. Korumak için bu bölüme dokunmayın.",
       "secret": "İmzalama gizli anahtarı",
-      "secretHint": "16 ile 255 karakter arası. Her teslimat, X-OpenWA-Signature başlığında bir HMAC-SHA256 imzası taşır.",
+      "secretHint": "16 ile 255 karakter arası. Her teslimat, X-NG-Signature başlığında bir HMAC-SHA256 imzası taşır.",
       "secretKeepPlaceholder": "Mevcut gizli anahtarı korumak için boş bırakın",
       "generateSecret": "Oluştur",
       "copySecret": "Kopyala",
@@ -717,7 +717,7 @@
       "errors": {
         "headerName": "Başlık adları yalnızca harf, rakam ve kısa çizgi içerebilir.",
         "headerValue": "Başlık değerleri en fazla 1024 karakter olabilir; kontrol karakterleri ve Latin-1 dışındaki karakterler kullanılamaz.",
-        "headerReserved": "Content-Type, User-Agent, X-OpenWA-* ve bağlantı başlıkları ağ geçidi tarafından ayarlanır ve kullanılamaz.",
+        "headerReserved": "Content-Type, User-Agent, X-NG-* ve bağlantı başlıkları ağ geçidi tarafından ayarlanır ve kullanılamaz.",
         "headerDuplicate": "Her başlık adı yalnızca bir kez kullanılabilir.",
         "tooMany": "En fazla 50 özel başlığa izin verilir.",
         "secretLength": "İmzalama gizli anahtarı 16 ile 255 karakter arasında olmalıdır."

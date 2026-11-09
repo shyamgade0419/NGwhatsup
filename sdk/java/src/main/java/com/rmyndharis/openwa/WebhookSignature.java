@@ -8,14 +8,14 @@ import java.util.regex.Pattern;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Checks the {@code X-OpenWA-Signature} header of a webhook delivery. */
+/** Checks the {@code X-NG-Signature} header of a webhook delivery. */
 public final class WebhookSignature {
     private static final Pattern SIGNATURE = Pattern.compile("sha256=([0-9a-fA-F]{64})");
 
     private WebhookSignature() {}
 
     /**
-     * Check a delivery's {@code X-OpenWA-Signature} header ({@code sha256=<hex HMAC-SHA256>}) against
+     * Check a delivery's {@code X-NG-Signature} header ({@code sha256=<hex HMAC-SHA256>}) against
      * the webhook secret. Pass the raw request body exactly as received; a re-serialized parse can
      * differ byte for byte and will not verify. Returns {@code false} (never throws) for a missing,
      * malformed or non-matching signature and for an empty secret.

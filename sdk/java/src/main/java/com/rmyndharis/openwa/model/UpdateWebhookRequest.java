@@ -42,7 +42,7 @@ public record UpdateWebhookRequest(
         }
 
         /**
-         * HMAC secret; signed as {@code X-OpenWA-Signature: sha256=…}. Held to the same 16-character
+         * HMAC secret; signed as {@code X-NG-Signature: sha256=…}. Held to the same 16-character
          * minimum as the create request, with one exception: {@code ""} is the documented
          * "clear the secret" value and is accepted.
          */

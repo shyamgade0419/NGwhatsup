@@ -701,7 +701,7 @@
       "hint": "Opsional. Nilai yang tersimpan tidak akan ditampilkan lagi setelah disimpan.",
       "editHint": "Secret dan header yang tersimpan tidak pernah ditampilkan. Biarkan bagian ini apa adanya untuk mempertahankannya.",
       "secret": "Secret penandatanganan",
-      "secretHint": "16 hingga 255 karakter. Setiap pengiriman membawa tanda tangan HMAC-SHA256 di header X-OpenWA-Signature.",
+      "secretHint": "16 hingga 255 karakter. Setiap pengiriman membawa tanda tangan HMAC-SHA256 di header X-NG-Signature.",
       "secretKeepPlaceholder": "Kosongkan untuk mempertahankan secret saat ini",
       "generateSecret": "Buat",
       "copySecret": "Salin",
@@ -717,7 +717,7 @@
       "errors": {
         "headerName": "Nama header hanya boleh berisi huruf, angka, dan tanda hubung.",
         "headerValue": "Nilai header maksimal 1024 karakter, tanpa karakter kontrol atau karakter di luar Latin-1.",
-        "headerReserved": "Content-Type, User-Agent, X-OpenWA-*, dan header koneksi diatur oleh gateway sehingga tidak dapat digunakan.",
+        "headerReserved": "Content-Type, User-Agent, X-NG-*, dan header koneksi diatur oleh gateway sehingga tidak dapat digunakan.",
         "headerDuplicate": "Setiap nama header hanya dapat digunakan sekali.",
         "tooMany": "Header kustom maksimal 50.",
         "secretLength": "Secret penandatanganan harus terdiri dari 16 hingga 255 karakter."

@@ -206,7 +206,7 @@ err := client.Do(ctx, "GET", "/api/some/new/path", nil, nil, &out)
 ## Receiving webhooks
 
 A webhook configured with a secret signs each delivery in its
-`X-OpenWA-Signature` header. Check it with `VerifyWebhookSignature` against the
+`X-NG-Signature` header. Check it with `VerifyWebhookSignature` against the
 raw request body, exactly as received, and decode the JSON only after the check
 passes: a re-serialized body can differ byte for byte and will not verify. The
 helper returns `false` for a missing, malformed or non-matching signature.
@@ -219,7 +219,7 @@ http.HandleFunc("/openwa/webhook", func(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if !openwa.VerifyWebhookSignature(body, r.Header.Get("X-OpenWA-Signature"), secret) {
+	if !openwa.VerifyWebhookSignature(body, r.Header.Get("X-NG-Signature"), secret) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}

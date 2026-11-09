@@ -125,7 +125,7 @@ except OpenWANotFoundError as e:
 
 ## Receiving webhooks
 
-A webhook configured with a secret signs each delivery in its `X-OpenWA-Signature` header. Check it
+A webhook configured with a secret signs each delivery in its `X-NG-Signature` header. Check it
 with `verify_webhook_signature` against the raw, unparsed request body (`bytes` or `str`), exactly
 as received, and parse the JSON only after the check passes: a re-serialized body can differ byte
 for byte and will not verify. The helper returns `False` (never raises) for a missing, malformed or
@@ -144,7 +144,7 @@ app = Flask(__name__)
 @app.post("/openwa/webhook")
 def openwa_webhook():
     raw_body = request.get_data()
-    if not verify_webhook_signature(raw_body, request.headers.get("X-OpenWA-Signature"), secret):
+    if not verify_webhook_signature(raw_body, request.headers.get("X-NG-Signature"), secret):
         return "Invalid signature", 401
     delivery: WebhookDelivery = json.loads(raw_body)
     # Process delivery["event"] and delivery["data"] here.

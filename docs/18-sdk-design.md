@@ -1,10 +1,10 @@
 # 18 - SDK Design
 
-> This document describes SDK 0.8.0. `setMemberLabel` (`set_member_label` in Python, `SetMemberLabel` in Go), the search `match` option, and the `thumbnailUrl` and `thumbnailBase64` fields of `customLinkPreview` require OpenWA 0.27.0 or later. Send idempotency, webhook failure redrive, message-window filters, poll choices, last-message types, and the `event.response` webhook event name require OpenWA 0.25.0 or later.
+> This document describes SDK 0.8.0. `setMemberLabel` (`set_member_label` in Python, `SetMemberLabel` in Go), the search `match` option, and the `thumbnailUrl` and `thumbnailBase64` fields of `customLinkPreview` require NG WhatsApp Gateway 0.27.0 or later. Send idempotency, webhook failure redrive, message-window filters, poll choices, last-message types, and the `event.response` webhook event name require NG WhatsApp Gateway 0.25.0 or later.
 
 ## 18.1 Overview
 
-OpenWA ships five official, hand-written client libraries for the REST API. They are not generated from an OpenAPI spec — each is written directly against the real API surface (paths, request DTOs, response shapes) and **unit-tested with a mocked HTTP transport that asserts on the exact request path, method, and body**, so drift in what an SDK _sends_ is caught at test time rather than in production. That mechanism says nothing about what an SDK expects _back_; see §18.6 for how response shapes are held to the contract.
+NG WhatsApp Gateway ships five official, hand-written client libraries for the REST API. They are not generated from an OpenAPI spec — each is written directly against the real API surface (paths, request DTOs, response shapes) and **unit-tested with a mocked HTTP transport that asserts on the exact request path, method, and body**, so drift in what an SDK _sends_ is caught at test time rather than in production. That mechanism says nothing about what an SDK expects _back_; see §18.6 for how response shapes are held to the contract.
 
 | Language                | Package                                                                                | Install                              | Notes                                                                            |
 | ----------------------- | -------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------- |
@@ -12,14 +12,14 @@ OpenWA ships five official, hand-written client libraries for the REST API. They
 | Python                  | [`rmyndharis-openwa`](https://pypi.org/project/rmyndharis-openwa/)                     | `pip install rmyndharis-openwa`      | Synchronous (httpx), PEP 561 typed, Python 3.9+                                  |
 | PHP                     | [`rmyndharis/openwa`](https://packagist.org/packages/rmyndharis/openwa)                | `composer require rmyndharis/openwa` | Synchronous (Guzzle 7.9+ or 8), PSR-4, PHP 8.1+                                  |
 | Java                    | [`com.rmyndharis:openwa`](https://central.sonatype.com/artifact/com.rmyndharis/openwa) | Maven Central                        | Sync, `java.net.http`. See [`sdk/java/README.md`](../sdk/java/README.md).        |
-| Go                      | [`github.com/rmyndharis/OpenWA/sdk/go`](../sdk/go)                                     | `go get`                             | Stdlib-only, no third-party deps. See [`sdk/go/README.md`](../sdk/go/README.md). |
+| Go                      | [`github.com/shyamgade0419/NGwhatsup/sdk/go`](../sdk/go)                                     | `go get`                             | Stdlib-only, no third-party deps. See [`sdk/go/README.md`](../sdk/go/README.md). |
 
-> The import names differ from the dist names where the ecosystem requires it. Python installs `rmyndharis-openwa` but imports `openwa`; the client class is `OpenWAClient` in JS/Python and `OpenWA\Client` in PHP.
+> The import names differ from the dist names where the ecosystem requires it. Python installs `rmyndharis-openwa` but imports `openwa`; the client class is `OpenWAClient` in JS/Python and `NG WhatsApp Gateway\Client` in PHP.
 
 ### Design Principles
 
-- **One client, fluent resources.** A single client object (`OpenWAClient` / `OpenWA\Client`) exposes every resource as a property — `client.messages.sendText(...)`, `client.sessions.start(...)`. All five SDKs expose the **same** resource surface; only the language idioms differ (camelCase methods + objects in JS/PHP/Java, snake_case methods + dicts in Python, exported fields + structs in Go).
-- **It is a request/response client, not an event SDK.** There is no WebSocket, EventEmitter, or `client.on(...)`. To receive inbound messages and acks, register a webhook (the `webhooks` resource) and host your own receiver, checking `X-OpenWA-Signature` with the SDK helper (`verifyWebhookSignature` in JavaScript, `verify_webhook_signature` in Python, `VerifyWebhookSignature` in Go, `WebhookSignature.verify` in Java, `WebhookSignature::verify` in PHP), or connect to the real-time Socket.IO API directly (see [API Specification §6.5](./06-api-specification.md)).
+- **One client, fluent resources.** A single client object (`OpenWAClient` / `NG WhatsApp Gateway\Client`) exposes every resource as a property — `client.messages.sendText(...)`, `client.sessions.start(...)`. All five SDKs expose the **same** resource surface; only the language idioms differ (camelCase methods + objects in JS/PHP/Java, snake_case methods + dicts in Python, exported fields + structs in Go).
+- **It is a request/response client, not an event SDK.** There is no WebSocket, EventEmitter, or `client.on(...)`. To receive inbound messages and acks, register a webhook (the `webhooks` resource) and host your own receiver, checking `X-NG-Signature` with the SDK helper (`verifyWebhookSignature` in JavaScript, `verify_webhook_signature` in Python, `VerifyWebhookSignature` in Go, `WebhookSignature.verify` in Java, `WebhookSignature::verify` in PHP), or connect to the real-time Socket.IO API directly (see [API Specification §6.5](./06-api-specification.md)).
 - **Typed errors.** Non-2xx responses raise/throw a typed error mapped from the HTTP status (`401/403/404/409/429/501/503`), plus a timeout error — all `instanceof`/`catch`-checkable. See each language's Error Handling subsection. A Baileys throttle `503` on a send or a single write means nothing was sent or applied, and so does a send's `503` for a failed recipient lookup, a connection that closed before the message was written, or a media or preview image URL that could not be fetched through the session's proxy; each frees a keyed send's `Idempotency-Key`. A group settings update with several fields applies them one at a time, so a `503` on a later field leaves the earlier ones applied and lists them after `already applied:` in its message: re-read the settings before retrying, or send one field per request.
 - **Injectable transport.** The HTTP layer is replaceable (`fetch` in JS, an `httpx` transport in Python, a Guzzle client in PHP) — the extension point for retry/observability middleware and for testing without the network.
 - **Safe by default.** Redirects are never followed (so the API key is never re-sent to a redirect target), the auth/JSON headers always take precedence over caller-supplied defaults, path segments are percent-encoded, a base-URL path prefix (e.g. behind a reverse proxy at `/v1`) is preserved, and there is a default 30s per-request timeout. **No automatic retries by default** — in JS, Python, PHP, and Java wrap calls in your own backoff if you need them (especially for `429`); the Go SDK additionally ships an opt-in `WithRetry(RetryPolicy)` that never replays a `POST` or `PATCH` after a network error and limits their retries to `429`/`503`.
@@ -91,7 +91,7 @@ async function main() {
   // Send a text message.
   const result = await client.messages.sendText(session.id, {
     chatId: '628123456789@c.us',
-    text: 'Hello from the OpenWA SDK!',
+    text: 'Hello from the NG WhatsApp Gateway SDK!',
   });
 
   console.log(result.messageId); // -> the WhatsApp message id
@@ -114,7 +114,7 @@ The constructor takes a single `OpenWAClientOptions` object. `baseUrl` and `apiK
 
 | Option           | Type                     | Required | Default            | Description                                                                                                                                                                                                                     |
 | ---------------- | ------------------------ | -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `baseUrl`        | `string`                 | yes      | —                  | Base URL of the OpenWA API, e.g. `http://localhost:2785`. A trailing slash is trimmed; a path prefix (e.g. `https://host/v1`) is preserved.                                                                                     |
+| `baseUrl`        | `string`                 | yes      | —                  | Base URL of the NG WhatsApp Gateway API, e.g. `http://localhost:2785`. A trailing slash is trimmed; a path prefix (e.g. `https://host/v1`) is preserved.                                                                                     |
 | `apiKey`         | `string`                 | yes      | —                  | API key sent as the `X-API-Key` header on every request. Surrounding whitespace is trimmed; a control or non-Latin-1 character is refused when the client is built.                                                             |
 | `timeoutMs`      | `number`                 | no       | `30000`            | Per-request timeout in milliseconds; `0` or `Infinity` turns it off, and a value that is not a non-negative number throws a `TypeError`. Overridable per call via `RequestOptions.timeoutMs` on the raw `request()` method.     |
 | `defaultHeaders` | `Record<string, string>` | no       | `{}`               | Headers merged onto every request. The `Content-Type: application/json` and `X-API-Key` headers always take precedence. A value with a control or non-Latin-1 character is refused when the client is built, naming the header. |
@@ -463,7 +463,7 @@ client.sessions.start(session["id"])
 # Send a text message
 result = client.messages.send_text(session["id"], {
     "chatId": "628123456789@c.us",
-    "text": "Hello from the OpenWA Python SDK!",
+    "text": "Hello from the NG WhatsApp Gateway Python SDK!",
 })
 print(result["messageId"])
 
@@ -796,7 +796,7 @@ except OpenWAApiError as e:
 
 ## 18.4 PHP SDK
 
-The PHP SDK is a hand-written, synchronous client built on Guzzle 7.9+ or 8. It mirrors the full user-facing API surface: every resource method maps to one REST endpoint, request/response payloads are plain associative arrays, and non-2xx responses are translated into a typed `OpenWA*Exception` hierarchy.
+The PHP SDK is a hand-written, synchronous client built on Guzzle 7.9+ or 8. It mirrors the full user-facing API surface: every resource method maps to one REST endpoint, request/response payloads are plain associative arrays, and non-2xx responses are translated into a typed `NG WhatsApp Gateway*Exception` hierarchy.
 
 ### Installation
 
@@ -808,7 +808,7 @@ Requirements:
 
 - **PHP 8.1+** (`declare(strict_types=1)` throughout; typed properties, `match`).
 - **Guzzle 7.9+ or 8** (`guzzlehttp/guzzle: ^7.9 || ^8.0`).
-- PSR-4 autoloaded under the `OpenWA\` namespace (`"OpenWA\\": "src/"`).
+- PSR-4 autoloaded under the `NG WhatsApp Gateway\` namespace (`"NG WhatsApp Gateway\\": "src/"`).
 
 ### Quick Start
 
@@ -816,7 +816,7 @@ Requirements:
 <?php
 require 'vendor/autoload.php';
 
-use OpenWA\Client;
+use NG WhatsApp Gateway\Client;
 
 $client = new Client([
     'baseUrl' => 'http://localhost:2785',
@@ -832,13 +832,13 @@ $client->sessions->start($session['id']);
 // then wait for status 'ready'. An unlinked session answers the send with 409.
 $result = $client->messages->sendText($session['id'], [
     'chatId' => '628123456789@c.us',
-    'text'   => 'Hello from the OpenWA PHP SDK!',
+    'text'   => 'Hello from the NG WhatsApp Gateway PHP SDK!',
 ]);
 
 echo $result['messageId'];
 ```
 
-The entry class is `OpenWA\Client`. It validates that `baseUrl` and `apiKey` are present (throwing `OpenWAException` otherwise), constructs the shared HTTP transport, and exposes each resource as a public property: `$client->sessions`, `$client->messages`, `$client->search`, `$client->contacts`, `$client->groups`, `$client->webhooks`, `$client->chats`, `$client->status`, `$client->health`, `$client->labels`, `$client->channels`, `$client->catalog`, `$client->templates`, `$client->profile`, `$client->calls`, `$client->media`.
+The entry class is `NG WhatsApp Gateway\Client`. It validates that `baseUrl` and `apiKey` are present (throwing `OpenWAException` otherwise), constructs the shared HTTP transport, and exposes each resource as a public property: `$client->sessions`, `$client->messages`, `$client->search`, `$client->contacts`, `$client->groups`, `$client->webhooks`, `$client->chats`, `$client->status`, `$client->health`, `$client->labels`, `$client->channels`, `$client->catalog`, `$client->templates`, `$client->profile`, `$client->calls`, `$client->media`.
 
 Two escape hatches sit on the client itself:
 
@@ -860,7 +860,7 @@ The constructor takes a single associative `$config` array:
 | `defaultHeaders`    | `array<string,scalar\|list>`   | `[]`             | Extra headers applied on every request, **under** the SDK's auth/JSON headers (which always win). A name must be an HTTP token; a value is text, a scalar or `null` (sent as text) or a non-empty list of those, without a control or non-ASCII character. |
 | `allowInsecureHttp` | `bool`                         | `false`          | Skip the `error_log()` warning written for an `http://` `baseUrl` whose host is not localhost (e.g. a private Docker network or a TLS-terminating proxy).                                                                                                  |
 
-Missing `baseUrl` or `apiKey`, a key or default header value with a control or non-ASCII character, or a default header name that is not an HTTP token throws `OpenWA\Exceptions\OpenWAException` from the constructor. So does an empty list as a header value, by header name, because Guzzle 8 cannot represent a header with zero values; use `''` for an empty value.
+Missing `baseUrl` or `apiKey`, a key or default header value with a control or non-ASCII character, or a default header name that is not an HTTP token throws `NG WhatsApp Gateway\Exceptions\OpenWAException` from the constructor. So does an empty list as a header value, by header name, because Guzzle 8 cannot represent a header with zero values; use `''` for an empty value.
 
 ### Resources & Methods
 
@@ -1093,7 +1093,7 @@ All payloads are associative arrays; all listed methods are synchronous and retu
 
 ### Error Handling
 
-All exceptions the SDK raises itself live in `OpenWA\Exceptions` and descend from `OpenWAException` (which extends PHP's `\Exception`). A transport failure that is not a timeout (a refused connection, a reset, a TLS verification failure) surfaces as one of Guzzle's own `GuzzleHttp\Exception\TransferException` subclasses and an invalid argument as `InvalidArgumentException`, so a catch-all names those as well. The subclass depends on the Guzzle major (a reset is a `RequestException` on Guzzle 7 and a `NetworkException`, which is not a `RequestException`, on Guzzle 8), so catch `TransferException` rather than a subclass. A body that ends before the `Content-Length` it declares is such a failure too: cURL and Guzzle 8 raise their own, and the SDK raises a `RequestException` on Guzzle 7's stream handler, which returns the short body as if it were whole. That handler still returns two cut bodies without an error, because neither carries a length to compare with: a chunked body (the gateway sends a `Content-Length` with media whenever the store reports a size) and a compressed body the application asked for with its own `Accept-Encoding` header. On Guzzle 7's stream handler (a host without `ext-curl`) a `timeout` of `0` still leaves PHP's `default_socket_timeout` before the response headers, and that wait ends with such a failure too, not an `OpenWATimeoutException` (see the [PHP README](../sdk/php/README.md)). That handler also bounds each wait rather than the whole call: a silence in the body can last up to about twice the `timeout` before it is cut off, and a body that keeps trickling bytes is not cut off at all, while cURL and Guzzle 8's stream handler bound the whole call. Any non-2xx response is raised as an `OpenWAApiException`; the static `classify()` factory picks the most specific subclass by status code. An `OpenWAApiException` carries the HTTP status (`getStatus(): int`), the parsed error body (`getBody(): mixed`), and the NestJS `error` kind when present (`getErrorKind(): ?string`), plus the body's `code` (`getErrorCode(): ?string`), the retry delay in seconds from the body's `retryAfterSeconds` or the `Retry-After` header (`getRetryAfterSeconds(): ?int`) and the response headers (`getHeaders(): array`).
+All exceptions the SDK raises itself live in `NG WhatsApp Gateway\Exceptions` and descend from `OpenWAException` (which extends PHP's `\Exception`). A transport failure that is not a timeout (a refused connection, a reset, a TLS verification failure) surfaces as one of Guzzle's own `GuzzleHttp\Exception\TransferException` subclasses and an invalid argument as `InvalidArgumentException`, so a catch-all names those as well. The subclass depends on the Guzzle major (a reset is a `RequestException` on Guzzle 7 and a `NetworkException`, which is not a `RequestException`, on Guzzle 8), so catch `TransferException` rather than a subclass. A body that ends before the `Content-Length` it declares is such a failure too: cURL and Guzzle 8 raise their own, and the SDK raises a `RequestException` on Guzzle 7's stream handler, which returns the short body as if it were whole. That handler still returns two cut bodies without an error, because neither carries a length to compare with: a chunked body (the gateway sends a `Content-Length` with media whenever the store reports a size) and a compressed body the application asked for with its own `Accept-Encoding` header. On Guzzle 7's stream handler (a host without `ext-curl`) a `timeout` of `0` still leaves PHP's `default_socket_timeout` before the response headers, and that wait ends with such a failure too, not an `OpenWATimeoutException` (see the [PHP README](../sdk/php/README.md)). That handler also bounds each wait rather than the whole call: a silence in the body can last up to about twice the `timeout` before it is cut off, and a body that keeps trickling bytes is not cut off at all, while cURL and Guzzle 8's stream handler bound the whole call. Any non-2xx response is raised as an `OpenWAApiException`; the static `classify()` factory picks the most specific subclass by status code. An `OpenWAApiException` carries the HTTP status (`getStatus(): int`), the parsed error body (`getBody(): mixed`), and the NestJS `error` kind when present (`getErrorKind(): ?string`), plus the body's `code` (`getErrorCode(): ?string`), the retry delay in seconds from the body's `retryAfterSeconds` or the `Retry-After` header (`getRetryAfterSeconds(): ?int`) and the response headers (`getHeaders(): array`).
 
 | Exception                           | Extends              | Trigger                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1110,11 +1110,11 @@ All exceptions the SDK raises itself live in `OpenWA\Exceptions` and descend fro
 
 ```php
 <?php
-use OpenWA\Client;
-use OpenWA\Exceptions\OpenWAConflictException;
-use OpenWA\Exceptions\OpenWARateLimitException;
-use OpenWA\Exceptions\OpenWATimeoutException;
-use OpenWA\Exceptions\OpenWAApiException;
+use NG WhatsApp Gateway\Client;
+use NG WhatsApp Gateway\Exceptions\OpenWAConflictException;
+use NG WhatsApp Gateway\Exceptions\OpenWARateLimitException;
+use NG WhatsApp Gateway\Exceptions\OpenWATimeoutException;
+use NG WhatsApp Gateway\Exceptions\OpenWAApiException;
 
 try {
     $result = $client->messages->sendText($sessionId, [
@@ -1145,14 +1145,14 @@ try {
 - **No automatic retries.** A failed request throws immediately; wrap calls in your own backoff if you need retries (notably for `429`). The injectable `httpClient` is the extension point for retry/observability middleware.
 - **Empty/204 responses return `null`.** A `204` or empty body decodes to `null`; resource methods that promise an `array` coalesce this to `[]` (or to the resource object for single-item gets).
 - **Testing without the network.** Inject a Guzzle client built on a `GuzzleHttp\Handler\MockHandler` via the `httpClient` config key — no global state, no live calls. The shipped test suite asserts on the exact path, method, and body.
-- **PSR-4 autoloading.** Everything lives under the `OpenWA\` namespace mapped to `src/`; `composer require rmyndharis/openwa` wires up the autoloader.
+- **PSR-4 autoloading.** Everything lives under the `NG WhatsApp Gateway\` namespace mapped to `src/`; `composer require rmyndharis/openwa` wires up the autoloader.
 
 ## 18.5 n8n Community Node
 
-OpenWA's n8n integration is **not** part of these SDK packages. It is a separate community node maintained in its own repository, which speaks the same REST + webhook contract documented in [API Specification](./06-api-specification.md):
+NG WhatsApp Gateway's n8n integration is **not** part of these SDK packages. It is a separate community node maintained in its own repository, which speaks the same REST + webhook contract documented in [API Specification](./06-api-specification.md):
 
 - An **action/HTTP** path that calls the REST endpoints (e.g. `POST /api/sessions/:id/messages/send-text`) with the `X-API-Key` header.
-- A **trigger** path that registers a webhook (the `webhooks` resource) and receives inbound events, verifying the `X-OpenWA-Signature` HMAC.
+- A **trigger** path that registers a webhook (the `webhooks` resource) and receives inbound events, verifying the `X-NG-Signature` HMAC.
 
 For installation and node-by-node configuration, see the dedicated [n8n Integration guide](./22-n8n-integration.md). Because the node consumes the public API contract, the verified route/event reference in docs 06 and §6.6 (Webhook Events) is the authority for what it can call and receive.
 
@@ -1168,7 +1168,7 @@ The five SDKs are versioned **independently of the gateway** and of each other, 
 | Python                | PyPI                 | `rmyndharis-openwa`                   |
 | PHP                   | Packagist            | `rmyndharis/openwa`                   |
 | Java                  | Maven Central        | `com.rmyndharis:openwa`               |
-| Go                    | (none — module path) | `github.com/rmyndharis/OpenWA/sdk/go` |
+| Go                    | (none — module path) | `github.com/shyamgade0419/NGwhatsup/sdk/go` |
 
 ### Contract-drift protection
 

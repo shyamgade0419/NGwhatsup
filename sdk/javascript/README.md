@@ -83,7 +83,7 @@ answers 502 or 504, and a 503 from the owner itself is relayed unchanged.
 ## Receiving webhooks
 
 A webhook configured with a secret signs each delivery in its
-`X-OpenWA-Signature` header. Check it with `verifyWebhookSignature` against the
+`X-NG-Signature` header. Check it with `verifyWebhookSignature` against the
 raw request body, exactly as received, and parse the JSON only after the check
 passes: a re-serialized body can differ byte for byte and will not verify. The
 helper resolves `false` (never throws) for a missing, malformed or non-matching
@@ -96,7 +96,7 @@ import { verifyWebhookSignature, type WebhookDelivery } from '@rmyndharis/openwa
 const app = express();
 
 app.post('/openwa/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  if (!(await verifyWebhookSignature(req.body, req.get('X-OpenWA-Signature'), secret))) {
+  if (!(await verifyWebhookSignature(req.body, req.get('X-NG-Signature'), secret))) {
     return res.status(401).send('Invalid signature');
   }
   const delivery = JSON.parse(req.body.toString('utf8')) as WebhookDelivery;

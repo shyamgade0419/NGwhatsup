@@ -1,8 +1,8 @@
 {
   "name": "openwa",
   "version": "0.27.0",
-  "description": "Open Source WhatsApp API Gateway - Free, Self-Hosted HTTP API for WhatsApp",
-  "author": "Yudhi Armyndharis & OpenWA Contributors",
+  "description": "WhatsApp gateway for NG by NovaGade - self-hosted HTTP API",
+  "author": "NovaGade (based on OpenWA by Yudhi Armyndharis and contributors, MIT)",
   "private": true,
   "license": "MIT",
   "engines": {

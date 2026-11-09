@@ -304,7 +304,7 @@ function installFetchStub(): void {
     }
     // ADMIN-only on the server, so any other role gets the 403 a real gateway answers.
     if (method === 'GET' && path === '/api/infra/engines/current') {
-      if (window.sessionStorage.getItem('openwa_user_role') !== 'admin') {
+      if (window.sessionStorage.getItem('ng_user_role') !== 'admin') {
         return Promise.resolve(jsonResponse({ message: 'Insufficient permissions. Required: admin' }, 403));
       }
       return Promise.resolve(jsonResponse({ engineType }));
@@ -424,12 +424,12 @@ before(async () => {
   installFetchStub();
   // RoleProvider initializes from sessionStorage; 'admin' makes canWrite true so the composer
   // controls render enabled.
-  window.sessionStorage.setItem('openwa_user_role', 'admin');
+  window.sessionStorage.setItem('ng_user_role', 'admin');
   // The engine POST /auth/validate reported at sign-in, kept next to the role.
-  window.sessionStorage.setItem('openwa_engine_type', 'baileys');
+  window.sessionStorage.setItem('ng_engine_type', 'baileys');
   // useWebSocket.connect() bails without this, so no socket would exist to receive a frame. It
   // dials nothing: the client is the double above.
-  window.sessionStorage.setItem('openwa_api_key', 'test-key');
+  window.sessionStorage.setItem('ng_api_key', 'test-key');
   // The real i18n instance, and then its readiness promise: catalogues are fetched rather than
   // bundled, so importing the module only STARTS the load. Every `getByText` below is English copy
   // out of en.json, which renders as a raw key until it lands. Awaiting is what makes that
@@ -834,7 +834,7 @@ test('Escape dismisses the message search results instead of the conversation be
 
 test('a read-only key is offered no status compose trigger', async () => {
   const { screen, fireEvent } = rtl;
-  window.sessionStorage.setItem('openwa_user_role', 'viewer');
+  window.sessionStorage.setItem('ng_user_role', 'viewer');
   try {
     renderChats();
     await screen.findByText(SESSION.name);
@@ -843,27 +843,27 @@ test('a read-only key is offered no status compose trigger', async () => {
     await screen.findByText('No contacts have an active status.');
     assert.ok(!screen.queryByRole('button', { name: 'Post a status' }), 'a viewer key was offered status compose');
   } finally {
-    window.sessionStorage.setItem('openwa_user_role', 'admin');
+    window.sessionStorage.setItem('ng_user_role', 'admin');
   }
 });
 
 // GET /search needs an operator key, so a viewer would only ever get "Search failed. Try again."
 test('a read-only key is offered no message search', async () => {
   const { screen } = rtl;
-  window.sessionStorage.setItem('openwa_user_role', 'viewer');
+  window.sessionStorage.setItem('ng_user_role', 'viewer');
   try {
     renderChats();
     await screen.findByText('Alice');
     assert.ok(!screen.queryByLabelText('Search messages…'), 'a viewer key was offered message search');
   } finally {
-    window.sessionStorage.setItem('openwa_user_role', 'admin');
+    window.sessionStorage.setItem('ng_user_role', 'admin');
   }
 });
 
 test('an operator key on whatsapp-web.js posts a status without the admin-only engine route', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
-  window.sessionStorage.setItem('openwa_engine_type', 'whatsapp-web.js');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
+  window.sessionStorage.setItem('ng_engine_type', 'whatsapp-web.js');
   try {
     resetFetchCalls();
     renderChats();
@@ -886,15 +886,15 @@ test('an operator key on whatsapp-web.js posts a status without the admin-only e
     });
     assert.equal(countFetchCalls('GET', '/api/infra/engines/current'), 0);
   } finally {
-    window.sessionStorage.setItem('openwa_user_role', 'admin');
-    window.sessionStorage.setItem('openwa_engine_type', 'baileys');
+    window.sessionStorage.setItem('ng_user_role', 'admin');
+    window.sessionStorage.setItem('ng_engine_type', 'baileys');
   }
 });
 
 test('an operator key on whatsapp-web.js lists its channels', async () => {
   const { screen, fireEvent } = rtl;
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
-  window.sessionStorage.setItem('openwa_engine_type', 'whatsapp-web.js');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
+  window.sessionStorage.setItem('ng_engine_type', 'whatsapp-web.js');
   try {
     renderChats();
     await screen.findByText(SESSION.name);
@@ -902,8 +902,8 @@ test('an operator key on whatsapp-web.js lists its channels', async () => {
     await screen.findByText(CHANNEL.name);
     assert.equal(screen.queryByText('Channels are not supported on the Baileys engine.') === null, true);
   } finally {
-    window.sessionStorage.setItem('openwa_user_role', 'admin');
-    window.sessionStorage.setItem('openwa_engine_type', 'baileys');
+    window.sessionStorage.setItem('ng_user_role', 'admin');
+    window.sessionStorage.setItem('ng_engine_type', 'baileys');
   }
 });
 
@@ -1341,12 +1341,12 @@ async function leaveWithPendingRead(loggedOut: boolean): Promise<number> {
     'the read went out before the page was left',
   );
   // Logout removes the key before the authenticated tree unmounts.
-  if (loggedOut) window.sessionStorage.removeItem('openwa_api_key');
+  if (loggedOut) window.sessionStorage.removeItem('ng_api_key');
   try {
     unmount();
     await new Promise(resolve => setTimeout(resolve, 1_000));
   } finally {
-    window.sessionStorage.setItem('openwa_api_key', 'test-key');
+    window.sessionStorage.setItem('ng_api_key', 'test-key');
   }
   return countFetchCalls('POST', `/api/sessions/${SESSION.id}/chats/read`);
 }
@@ -1501,7 +1501,7 @@ test('switching session with a chat open marks only the chats opened on the new 
 test('a read-only key opening a chat sends no mark-as-read', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
   resetFetchCalls();
-  window.sessionStorage.setItem('openwa_user_role', 'viewer');
+  window.sessionStorage.setItem('ng_user_role', 'viewer');
   try {
     const { container } = renderChats();
     await screen.findByText(SESSION.name);
@@ -1540,7 +1540,7 @@ test('a read-only key opening a chat sends no mark-as-read', async () => {
       assert.ok(screen.queryByLabelText('3 unread messages'), 'the open chat did not count the arrival'),
     );
   } finally {
-    window.sessionStorage.setItem('openwa_user_role', 'admin');
+    window.sessionStorage.setItem('ng_user_role', 'admin');
   }
 });
 
@@ -2937,7 +2937,7 @@ test('a sticker opens in the media viewer, as an image does', async () => {
 test('a channel post with media and no URL says the media is unavailable', async () => {
   const { screen, fireEvent, within, waitFor } = rtl;
   engineType = 'whatsapp-web.js';
-  window.sessionStorage.setItem('openwa_engine_type', engineType);
+  window.sessionStorage.setItem('ng_engine_type', engineType);
   channels = [{ id: '120363000000000001@newsletter', name: 'News' }];
   channelPosts = [{ id: 'post-1', body: '', timestamp: 1_700_000_000, hasMedia: true }];
   const { container } = renderChats();
@@ -2958,7 +2958,7 @@ test('a channel post or status caption carrying mention delimiters renders them 
   // Only resolveMentions may place the delimiters; raw text carrying them is stripped before render.
   const raw = `${MENTION_OPEN}@Mallory${MENTION_CLOSE} says hi`;
   engineType = 'whatsapp-web.js';
-  window.sessionStorage.setItem('openwa_engine_type', engineType);
+  window.sessionStorage.setItem('ng_engine_type', engineType);
   channels = [{ id: '120363000000000001@newsletter', name: 'News' }];
   channelPosts = [{ id: 'post-1', body: raw, timestamp: 1_700_000_000, hasMedia: false }];
   const now = Date.now();

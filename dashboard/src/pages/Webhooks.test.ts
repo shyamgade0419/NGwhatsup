@@ -80,7 +80,7 @@ before(async () => {
   const { installJsdomGlobals } = await import('../test-helpers/jsdom.ts');
   await installJsdomGlobals();
   installFetchStub();
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   const { i18nReady } = await import('../i18n/index.ts');
   await i18nReady;
   rtl = await import('@testing-library/react');
@@ -104,7 +104,7 @@ afterEach(() => {
   releaseRequests();
   heldRequests = Promise.resolve();
   webhookReads = 0;
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
 });
 
 function renderWebhooks(): void {
@@ -128,7 +128,7 @@ test('a 403 on the webhook list shows a permission state, not an empty list', as
 
 test('a viewer key is shown the permission state without a list request the gateway would refuse', async () => {
   webhooksStatus = 200;
-  window.sessionStorage.setItem('openwa_user_role', 'viewer');
+  window.sessionStorage.setItem('ng_user_role', 'viewer');
   renderWebhooks();
   await rtl.screen.findByText('No access to webhooks');
   assert.ok(!rtl.screen.queryByText('No webhooks configured'), 'a read nobody sent claimed there are no webhooks');
@@ -260,7 +260,7 @@ test('a second click on Create while the first create is in flight sends nothing
   const { screen, fireEvent, waitFor } = rtl;
   webhooksStatus = 200;
   sessionList = [{ id: 'sess-1', name: 'Main', status: 'ready', createdAt: '2026-01-01T00:00:00.000Z' }];
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   renderWebhooks();
 
   fireEvent.click(await screen.findByRole('button', { name: 'Add Webhook' }));
@@ -283,7 +283,7 @@ test('Create stays disabled until both a session and a URL are filled in', async
   const { screen, fireEvent } = rtl;
   webhooksStatus = 200;
   sessionList = [{ id: 'sess-1', name: 'Main', status: 'ready', createdAt: '2026-01-01T00:00:00.000Z' }];
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   renderWebhooks();
 
   fireEvent.click(await screen.findByRole('button', { name: 'Add Webhook' }));
@@ -306,7 +306,7 @@ test('Create stays disabled with a hint while no event is selected', async () =>
   const { screen, fireEvent } = rtl;
   webhooksStatus = 200;
   sessionList = [{ id: 'sess-1', name: 'Main', status: 'ready', createdAt: '2026-01-01T00:00:00.000Z' }];
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   renderWebhooks();
 
   fireEvent.click(await screen.findByRole('button', { name: 'Add Webhook' }));
@@ -342,7 +342,7 @@ async function openEditModal(): Promise<HTMLButtonElement> {
       headers: { 'X-Stray': 'value' },
     },
   ];
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   renderWebhooks();
   rtl.fireEvent.click(await rtl.screen.findByTitle('Edit'));
   return rtl.screen.getByRole<HTMLButtonElement>('button', { name: 'Save Changes' });
@@ -386,7 +386,7 @@ async function openCreateModal(): Promise<HTMLButtonElement> {
   const { screen, fireEvent } = rtl;
   webhooksStatus = 200;
   sessionList = [{ id: 'sess-1', name: 'Main', status: 'ready', createdAt: '2026-01-01T00:00:00.000Z' }];
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   renderWebhooks();
   fireEvent.click(await screen.findByRole('button', { name: 'Add Webhook' }));
   const sessionSelect = screen.getByLabelText<HTMLSelectElement>('Session');
@@ -445,10 +445,10 @@ test('a short secret or a bad header keeps Create disabled and says why', async 
   screen.getByText('The signing secret must be 16 to 255 characters long.');
 
   fireEvent.change(screen.getByLabelText('Signing secret'), { target: { value: '' } });
-  addHeaderRow('X-OpenWA-Signature', 'forged');
+  addHeaderRow('X-NG-Signature', 'forged');
   assert.equal(create.disabled, true);
   screen.getByText(
-    'Content-Type, User-Agent, X-OpenWA-* and connection headers are set by the gateway and cannot be used.',
+    'Content-Type, User-Agent, X-NG-* and connection headers are set by the gateway and cannot be used.',
   );
   fireEvent.click(create);
   await new Promise(resolve => setTimeout(resolve, 50));
@@ -547,7 +547,7 @@ function editWebhookWith(conditions: unknown[]): void {
       filters: { conditions },
     },
   ];
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   renderWebhooks();
 }
 
@@ -614,7 +614,7 @@ test('a second click on the delete confirm while the first delete is in flight s
   const { screen, fireEvent, waitFor, within } = rtl;
   webhooksStatus = 200;
   webhookList = [{ id: 'w1', sessionId: 'sess-1', url: 'https://example.test/hook', events: [], active: true }];
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   holdRequests();
   renderWebhooks();
   fireEvent.click(await screen.findByTitle('Delete'));
@@ -660,7 +660,7 @@ test('the delete confirmation stays open while its delete is in flight', async (
   const { screen, fireEvent, waitFor, within } = rtl;
   webhooksStatus = 200;
   webhookList = [{ id: 'w1', sessionId: 'sess-1', url: 'https://example.test/hook', events: [], active: true }];
-  window.sessionStorage.setItem('openwa_user_role', 'operator');
+  window.sessionStorage.setItem('ng_user_role', 'operator');
   holdRequests();
   renderWebhooks();
   fireEvent.click(await screen.findByTitle('Delete'));

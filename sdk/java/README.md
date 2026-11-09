@@ -132,7 +132,7 @@ All extend `OpenWAError` (a `RuntimeException`). 503 means the gateway could not
 ## Receiving webhooks
 
 A webhook configured with a secret signs each delivery in its
-`X-OpenWA-Signature` header. Check it with `WebhookSignature.verify` against
+`X-NG-Signature` header. Check it with `WebhookSignature.verify` against
 the raw request body, exactly as received (a `byte[]`, or a `String` read as
 UTF-8), and parse the JSON only after the check passes: a re-serialized body can
 differ byte for byte and will not verify. The helper returns `false` (never
@@ -147,7 +147,7 @@ import java.nio.charset.StandardCharsets;
 
 // In a servlet's doPost(request, response):
 byte[] rawBody = request.getInputStream().readAllBytes();
-if (!WebhookSignature.verify(rawBody, request.getHeader("X-OpenWA-Signature"), secret)) {
+if (!WebhookSignature.verify(rawBody, request.getHeader("X-NG-Signature"), secret)) {
     response.setStatus(401);
     return;
 }

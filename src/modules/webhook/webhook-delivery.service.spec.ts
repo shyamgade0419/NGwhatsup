@@ -510,7 +510,7 @@ describe('WebhookDeliveryService', () => {
 
       const keyByUrl = new Map<string, string>();
       for (const call of mockFetch.mock.calls as [string, { headers: Record<string, string> }][]) {
-        keyByUrl.set(call[0], call[1].headers['X-OpenWA-Idempotency-Key']);
+        keyByUrl.set(call[0], call[1].headers['X-NG-Idempotency-Key']);
       }
       const keyA = keyByUrl.get('https://a.example/hook');
       const keyB = keyByUrl.get('https://b.example/hook');
@@ -577,8 +577,8 @@ describe('WebhookDeliveryService', () => {
       const body = JSON.parse(call[1].body) as WebhookPayload;
       // Receivers dedupe on the header, so the signed body field must equal the header — and both must
       // be the server's value, not the plugin's forgery.
-      expect(body.idempotencyKey).toBe(headers['X-OpenWA-Idempotency-Key']);
-      expect(body.deliveryId).toBe(headers['X-OpenWA-Delivery-Id']);
+      expect(body.idempotencyKey).toBe(headers['X-NG-Idempotency-Key']);
+      expect(body.deliveryId).toBe(headers['X-NG-Delivery-Id']);
       expect(body.idempotencyKey).not.toBe('PLUGIN-FORGED');
       expect(body.deliveryId).not.toBe('PLUGIN-FORGED');
     });
@@ -619,9 +619,9 @@ describe('WebhookDeliveryService', () => {
       expect(body.timestamp).toBe(canonicalTimestamp);
       // Body and headers tell the same story, and the signature covers the exact bytes sent — a
       // forged identity field would have diverged body from header/signature.
-      expect(headers['X-OpenWA-Event']).toBe(body.event);
+      expect(headers['X-NG-Event']).toBe(body.event);
       const expected = `sha256=${crypto.createHmac('sha256', 'sek').update(call[1].body).digest('hex')}`;
-      expect(headers['X-OpenWA-Signature']).toBe(expected);
+      expect(headers['X-NG-Signature']).toBe(expected);
     });
 
     it.each([
@@ -646,7 +646,7 @@ describe('WebhookDeliveryService', () => {
         expect(body.event).toBe('message.received');
         expect(body.sessionId).toBe('sess-1');
         expect(body.data).toEqual({ from: '628123456789@c.us' });
-        expect(body.idempotencyKey).toBe(call[1].headers['X-OpenWA-Idempotency-Key']);
+        expect(body.idempotencyKey).toBe(call[1].headers['X-NG-Idempotency-Key']);
         expect(failureRepository.insert).not.toHaveBeenCalled();
       },
     );
@@ -1615,7 +1615,7 @@ describe('WebhookDeliveryService', () => {
     it('drops reserved custom headers so the system headers always win', async () => {
       const webhook = createMockWebhook({
         events: ['message.received'],
-        headers: { 'X-OpenWA-Event': 'forged', 'Content-Type': 'text/plain', 'X-Custom': 'ok' },
+        headers: { 'X-NG-Event': 'forged', 'Content-Type': 'text/plain', 'X-Custom': 'ok' },
       });
       (repository.find as jest.Mock).mockResolvedValue([webhook]);
       (repository.update as jest.Mock).mockResolvedValue({ affected: 1 });
@@ -1642,7 +1642,7 @@ describe('WebhookDeliveryService', () => {
 
       await service.dispatch('sess-1', 'message.received', {});
 
-      expect(captured['X-OpenWA-Event']).toBe('message.received'); // system value, not 'forged'
+      expect(captured['X-NG-Event']).toBe('message.received'); // system value, not 'forged'
       expect(captured['Content-Type']).toBe('application/json');
       expect(captured['X-Custom']).toBe('ok'); // legitimate custom header preserved
       mockFetch.mockReset();
@@ -1739,14 +1739,14 @@ describe('WebhookDeliveryService', () => {
       await service.dispatch('sess-1', 'message.received', {});
 
       // Verify signature format
-      expect(capturedHeaders['X-OpenWA-Signature']).toMatch(/^sha256=[a-f0-9]{64}$/);
+      expect(capturedHeaders['X-NG-Signature']).toMatch(/^sha256=[a-f0-9]{64}$/);
 
       // Verify signature correctness against the ACTUAL delivered body. The body now carries the
       // server-canonical idempotency/delivery ids (re-asserted over the plugin's 'k'/'d'), so the
       // signature is checked against what the receiver actually gets — the real verification contract.
       const sentBody = (mockFetch.mock.calls[0] as [unknown, { body: string }])[1].body;
       const expected = `sha256=${crypto.createHmac('sha256', 'test-secret-123').update(sentBody).digest('hex')}`;
-      expect(capturedHeaders['X-OpenWA-Signature']).toBe(expected);
+      expect(capturedHeaders['X-NG-Signature']).toBe(expected);
 
       mockFetch.mockReset();
     });
@@ -2349,8 +2349,8 @@ describe('WebhookDeliveryService', () => {
       expect(calls.map(([url]) => url)).toEqual(['https://example.com/webhook', 'https://moved.example/hook']);
       const [, retry] = calls[1];
       const expected = `sha256=${crypto.createHmac('sha256', 'new-secret-0123456789').update(retry.body).digest('hex')}`;
-      expect(retry.headers['X-OpenWA-Signature']).toBe(expected);
-      expect(retry.headers['X-OpenWA-Retry-Count']).toBe('1');
+      expect(retry.headers['X-NG-Signature']).toBe(expected);
+      expect(retry.headers['X-NG-Retry-Count']).toBe('1');
     });
 
     it('drops the signature from a retry once the secret is cleared', async () => {
@@ -2361,8 +2361,8 @@ describe('WebhookDeliveryService', () => {
       await service.redeliver(webhook, 'sess-1', 'message.received', 'k', {});
 
       const calls = mockFetch.mock.calls as Array<[string, SentInit]>;
-      expect(calls[0][1].headers).toHaveProperty('X-OpenWA-Signature');
-      expect(calls[1][1].headers).not.toHaveProperty('X-OpenWA-Signature');
+      expect(calls[0][1].headers).toHaveProperty('X-NG-Signature');
+      expect(calls[1][1].headers).not.toHaveProperty('X-NG-Signature');
     });
 
     it('counts a failed re-read as a failed attempt', async () => {

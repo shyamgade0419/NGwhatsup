@@ -74,7 +74,7 @@
 > **Request routing now exists, opt-in via `NODE_URL`.** When every node sets its own
 > reachable URL (e.g. `NODE_URL=http://10.0.0.5:2785`), a session-scoped request landing on
 > a non-owner is forwarded to the live owner and the owner's response is relayed back
-> (`x-openwa-served-by` names it). The forward happens after API-key auth, carries the
+> (`x-ng-served-by` names it). The forward happens after API-key auth, carries the
 > caller's credentials, is bounded by
 > `SESSION_PROXY_TIMEOUT_MS` (default 60s), and is one hop only — a forwarded request is
 > never forwarded again; one that still lands on a live non-owner (stale ownership, or a
@@ -223,7 +223,7 @@
 > Everything below (node affinity, `replicas: 3`) remains a **design sketch** until those
 > land.
 
-This guide explains a _proposed_ design for deploying OpenWA in a horizontally scaled environment for high availability and increased capacity.
+This guide explains a _proposed_ design for deploying NG WhatsApp Gateway in a horizontally scaled environment for high availability and increased capacity.
 
 ## 13.1 Architecture Overview
 
@@ -233,10 +233,10 @@ flowchart TB
         NGINX[Nginx/Traefik]
     end
 
-    subgraph Nodes["OpenWA Nodes"]
-        N1[OpenWA Node 1]
-        N2[OpenWA Node 2]
-        N3[OpenWA Node 3]
+    subgraph Nodes["NG WhatsApp Gateway Nodes"]
+        N1[NG WhatsApp Gateway Node 1]
+        N2[NG WhatsApp Gateway Node 2]
+        N3[NG WhatsApp Gateway Node 3]
     end
 
     subgraph Storage["Shared Storage"]
@@ -374,7 +374,7 @@ services:
     networks:
       - openwa-net
 
-  # NOTE (v0.4.0): OpenWA no longer ships a bundled Traefik container.
+  # NOTE (v0.4.0): NG WhatsApp Gateway no longer ships a bundled Traefik container.
   # For TLS / public exposure, bring your own reverse proxy (Traefik, nginx,
   # Caddy, a cloud load balancer, etc.) and point it at openwa:2785.
   # See section 13.5 for Traefik / nginx config examples.
@@ -681,7 +681,7 @@ http:
     sticky-session:
       headers:
         customResponseHeaders:
-          X-OpenWA-Node: '{{.Node}}'
+          X-NG-Node: '{{.Node}}'
 
   services:
     openwa:
@@ -716,7 +716,7 @@ server {
     listen 80;
     server_name openwa.example.com;
 
-    # nginx refuses a request body over 1m by default, below the 25mb OpenWA itself accepts
+    # nginx refuses a request body over 1m by default, below the 25mb NG WhatsApp Gateway itself accepts
     # (BODY_SIZE_LIMIT), so base64 media sends would answer 413 before reaching a node.
     client_max_body_size 25m;
 
@@ -774,7 +774,7 @@ other instances' datastores host names of their own and no `com.openwa.*` labels
 shipped compose file needs its own project name and container names, and its app must reach its
 datastores under names other than `postgres`, `redis` and `minio`. An instance set up that way whose
 `*_BUILTIN` flags are not `true` leaves the other instance's containers running: its dashboard counts
-a container OpenWA created as its own only beside its own flag, and asks to stop none of them.
+a container NG WhatsApp Gateway created as its own only beside its own flag, and asks to stop none of them.
 
 | Metric                            | Threshold  | Action                                                                                                     |
 | --------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
@@ -799,7 +799,7 @@ the warning at the top of this guide), so the 3- and 5-node rows could not have 
 
 ### Prometheus Metrics
 
-OpenWA exports Prometheus text exposition at `GET /api/metrics` (`openwa_*` gauges and counters).
+NG WhatsApp Gateway exports Prometheus text exposition at `GET /api/metrics` (`openwa_*` gauges and counters).
 The endpoint returns `404` until `METRICS_TOKEN` is set, and then requires that token as a Bearer:
 
 ```yaml
@@ -828,7 +828,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: 'OpenWA node high memory usage'
+          summary: 'NG WhatsApp Gateway node high memory usage'
 
       - alert: NodeDown
         expr: up{job="openwa"} == 0
@@ -836,7 +836,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: 'OpenWA node is down'
+          summary: 'NG WhatsApp Gateway node is down'
 ```
 
 ### Health Check Endpoints

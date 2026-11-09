@@ -143,7 +143,7 @@ export class CreateWebhookDto {
   @ApiPropertyOptional({
     description:
       'Secret key for HMAC signature verification. Never returned by any webhook route; it is used to ' +
-      'compute the `X-OpenWA-Signature: sha256=<hex>` header on every delivery.',
+      'compute the `X-NG-Signature: sha256=<hex>` header on every delivery.',
     // Both bounds are spelled out because @MinLength/@MaxLength do not reach the published schema on
     // their own, and the example must satisfy them: the previous 15-character one was rejected by the
     // very route that offered it, so pasting it back from Swagger answered 400
@@ -164,7 +164,7 @@ export class CreateWebhookDto {
   @ApiPropertyOptional({
     description:
       'Custom headers to include in webhook requests. Names must be unique ignoring case. Never returned by ' +
-      'any webhook route. At delivery, `content-type`, `user-agent` and `x-openwa-*` names are stripped so a ' +
+      'any webhook route. At delivery, `content-type`, `user-agent` and `x-ng-*` names are stripped so a ' +
       'custom header cannot shadow a system one, ' +
       'and so are the connection-level names the HTTP client owns (`connection`, `content-length`, ' +
       '`expect`, `keep-alive`, `te`, `trailer`, `transfer-encoding`, `upgrade`).',

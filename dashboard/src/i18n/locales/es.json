@@ -707,7 +707,7 @@
       "hint": "Opcional. Los valores guardados no se vuelven a mostrar después de guardar.",
       "editHint": "El secreto y los encabezados guardados nunca se muestran. Deja esta sección sin cambios para conservarlos.",
       "secret": "Secreto de firma",
-      "secretHint": "De 16 a 255 caracteres. Cada entrega lleva una firma HMAC-SHA256 en el encabezado X-OpenWA-Signature.",
+      "secretHint": "De 16 a 255 caracteres. Cada entrega lleva una firma HMAC-SHA256 en el encabezado X-NG-Signature.",
       "secretKeepPlaceholder": "Déjalo vacío para conservar el secreto actual",
       "generateSecret": "Generar",
       "copySecret": "Copiar",
@@ -723,7 +723,7 @@
       "errors": {
         "headerName": "Los nombres de encabezado solo pueden contener letras, dígitos y guiones.",
         "headerValue": "Los valores de encabezado tienen un máximo de 1024 caracteres, sin caracteres de control ni caracteres fuera de Latin-1.",
-        "headerReserved": "Content-Type, User-Agent, X-OpenWA-* y los encabezados de conexión los establece la pasarela y no se pueden usar.",
+        "headerReserved": "Content-Type, User-Agent, X-NG-* y los encabezados de conexión los establece la pasarela y no se pueden usar.",
         "headerDuplicate": "Cada nombre de encabezado solo puede usarse una vez.",
         "tooMany": "Se permiten como máximo 50 encabezados personalizados.",
         "secretLength": "El secreto de firma debe tener entre 16 y 255 caracteres."
