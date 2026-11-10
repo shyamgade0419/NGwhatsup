@@ -218,12 +218,12 @@ defects in NG WhatsApp Gateway — routing them correctly upfront saves time for
 for you, cleaner triage for maintainers). When in doubt, open a Discussion first; it can
 always be promoted to an Issue once a real defect is confirmed.
 
-| Open an **Issue**                                                        | Open a **Discussion**                                                       |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Open an **Issue**                                                                     | Open a **Discussion**                                                       |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Reproducible defect in NG WhatsApp Gateway code with clear steps, expected vs. actual | Setup / configuration help ("my proxy doesn't work, how do I configure X?") |
-| Crash, panic, wrong API response, regression after upgrade               | Provider-specific quirks (webshare, IPRoyal, brightdata, Twilio, etc.)      |
-| Documented behavior contradicted by actual behavior                      | "Is X possible?" / "What's the best way to Y?"                              |
-| Security issue (use `SECURITY.md`, not a public issue)                   | Hosting-platform / network / firewall questions                             |
+| Crash, panic, wrong API response, regression after upgrade                            | Provider-specific quirks (webshare, IPRoyal, brightdata, Twilio, etc.)      |
+| Documented behavior contradicted by actual behavior                                   | "Is X possible?" / "What's the best way to Y?"                              |
+| Security issue (use `SECURITY.md`, not a public issue)                                | Hosting-platform / network / firewall questions                             |
 
 **Common gray-zone examples (these go to Discussions, not Issues):**
 
@@ -243,14 +243,14 @@ Discussions.
 Blank issues are disabled — GitHub presents the **Bug report** form
 (`.github/ISSUE_TEMPLATE/bug_report.yml`). Required fields:
 
-| Field              | Notes                                                                        |
-| ------------------ | ---------------------------------------------------------------------------- |
-| Pre-flight         | Both checkboxes: searched for duplicates, and on the latest released version |
-| NG WhatsApp Gateway version     | e.g. `0.2.1` (shown on the dashboard Login screen) or a commit SHA           |
-| Deployment         | Docker Compose / Docker (manual run) / Bare metal (npm) / Other              |
-| Database           | SQLite (default) / PostgreSQL                                                |
-| What happened?     | The bug and its impact                                                       |
-| Steps to reproduce | Exact steps, including the API call or dashboard action                      |
+| Field                       | Notes                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| Pre-flight                  | Both checkboxes: searched for duplicates, and on the latest released version |
+| NG WhatsApp Gateway version | e.g. `0.2.1` (shown on the dashboard Login screen) or a commit SHA           |
+| Deployment                  | Docker Compose / Docker (manual run) / Bare metal (npm) / Other              |
+| Database                    | SQLite (default) / PostgreSQL                                                |
+| What happened?              | The bug and its impact                                                       |
+| Steps to reproduce          | Exact steps, including the API call or dashboard action                      |
 
 Optional but valuable: **WhatsApp engine** (defaults to `whatsapp-web.js`), **Expected
 behavior**, **Relevant logs** (redact API keys and secrets), and **Environment /
@@ -275,31 +275,31 @@ not supported on whatsapp-web.js, the default engine.
 
 ### Issue Labels
 
-| Label                 | Description                                                                     |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `bug`                 | Something isn't working                                                         |
-| `enhancement`         | New feature or request                                                          |
-| `documentation`       | Improvements to docs                                                            |
-| `good first issue`    | Good for newcomers                                                              |
-| `help wanted`         | Extra attention needed                                                          |
-| `question`            | Further information requested                                                   |
-| `needs-info`          | Awaiting reporter input to proceed                                              |
+| Label                 | Description                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `bug`                 | Something isn't working                                                                      |
+| `enhancement`         | New feature or request                                                                       |
+| `documentation`       | Improvements to docs                                                                         |
+| `good first issue`    | Good for newcomers                                                                           |
+| `help wanted`         | Extra attention needed                                                                       |
+| `question`            | Further information requested                                                                |
+| `needs-info`          | Awaiting reporter input to proceed                                                           |
 | `not-a-bug`           | External/environmental cause (provider, network, hosting); not an NG WhatsApp Gateway defect |
-| `move-to-discussions` | Belongs in GitHub Discussions, not Issues — see §20.3 Issue vs. Discussions     |
-| `invalid`             | This doesn't seem right                                                         |
-| `wontfix`             | This will not be worked on                                                      |
-| `duplicate`           | This issue already exists                                                       |
-| `security`            | Security-related                                                                |
-| `design`              | Architecture / design discussion                                                |
-| `engine:baileys`      | Baileys engine specific                                                         |
-| `upstream-blocked`    | Blocked on upstream library/WhatsApp behavior; no OpenWA-side fix               |
-| `release`             | Release / version PR                                                            |
-| `dependencies`        | Pull requests that update a dependency file                                     |
-| `dashboard`           | Dashboard (React) changes                                                       |
-| `ci`                  | CI and GitHub Actions workflow changes                                          |
-| `docker`              | Docker image and container changes                                              |
-| `github_actions`      | Pull requests that update GitHub Actions code                                   |
-| `javascript`          | Pull requests that update javascript code                                       |
+| `move-to-discussions` | Belongs in GitHub Discussions, not Issues — see §20.3 Issue vs. Discussions                  |
+| `invalid`             | This doesn't seem right                                                                      |
+| `wontfix`             | This will not be worked on                                                                   |
+| `duplicate`           | This issue already exists                                                                    |
+| `security`            | Security-related                                                                             |
+| `design`              | Architecture / design discussion                                                             |
+| `engine:baileys`      | Baileys engine specific                                                                      |
+| `upstream-blocked`    | Blocked on upstream library/WhatsApp behavior; no OpenWA-side fix                            |
+| `release`             | Release / version PR                                                                         |
+| `dependencies`        | Pull requests that update a dependency file                                                  |
+| `dashboard`           | Dashboard (React) changes                                                                    |
+| `ci`                  | CI and GitHub Actions workflow changes                                                       |
+| `docker`              | Docker image and container changes                                                           |
+| `github_actions`      | Pull requests that update GitHub Actions code                                                |
+| `javascript`          | Pull requests that update javascript code                                                    |
 
 `.github/dependabot.yml` applies `dependencies`, `dashboard`, `javascript` (the JavaScript SDK), `ci` and
 `docker`; `github_actions` is a Dependabot default from before it set explicit labels.

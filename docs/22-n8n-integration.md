@@ -47,8 +47,8 @@ Execute operations on your NG WhatsApp Gateway server.
 
 #### Credentials Setup
 
-| Field      | Description                      | Example                  |
-| ---------- | -------------------------------- | ------------------------ |
+| Field      | Description                                   | Example                  |
+| ---------- | --------------------------------------------- | ------------------------ |
 | Server URL | NG WhatsApp Gateway server URL (without /api) | `https://wa.example.com` |
 | API Key    | API key from NG WhatsApp Gateway dashboard    | `owa_xxxxxxxx...`        |
 

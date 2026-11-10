@@ -61,6 +61,8 @@ services:
       - ENABLE_SWAGGER=false
       # Updates are chosen by you, not announced by the gateway.
       - UPDATE_CHECK_ENABLED=false
+      # Invoices, reminders and OTPs only: refuse bulk sends and status posts (marketing gets numbers blocked).
+      - DISABLE_BROADCAST_SENDING=true
 
 volumes:
   ng-whatsapp-data:

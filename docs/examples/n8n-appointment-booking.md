@@ -34,9 +34,9 @@ The workflow is intentionally generic. The availability source can be Google Cal
 
 Use the **NG WhatsApp Gateway Trigger** node.
 
-| Field   | Value                         |
-| ------- | ----------------------------- |
-| Event   | `message.received`            |
+| Field   | Value                                      |
+| ------- | ------------------------------------------ |
+| Event   | `message.received`                         |
 | Session | Your connected NG WhatsApp Gateway session |
 
 The incoming message body is available at:

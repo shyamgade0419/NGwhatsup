@@ -21,6 +21,9 @@ The `ng-whatsapp-data` volume holds the WhatsApp link and the database. Keep it:
 
 ## Notes
 
+- This gateway is for one-to-one **invoices, reminders and OTPs only**, never marketing. `DISABLE_BROADCAST_SENDING=true`
+  (set in `docker-compose.coolify.yml`) makes the gateway refuse bulk sends and status posts with HTTP 403
+  `BROADCAST_SENDING_DISABLED`. Single sends (`send-text`, `send-document`, `send-template`) still work.
 - Use a **dedicated** WhatsApp number, not a personal one. WhatsApp can restrict numbers used for automation, so NG Home
   sends slowly (one message every few seconds, daytime only) and the gateway paces new numbers (`SEND_PACING_ENABLED`).
 - A linked phone stays linked across restarts and redeploys while the data volume is kept and the phone is used or online

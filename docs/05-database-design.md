@@ -100,8 +100,8 @@ The container can still be coming up when the `data` connection first dials it, 
 
 When using PostgreSQL, NG WhatsApp Gateway can place its tables and migration ledger in a dedicated schema via the `POSTGRES_SCHEMA` environment variable:
 
-| Setting           | Default  | Description                                                                                                   |
-| ----------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| Setting           | Default  | Description                                                                                                                |
+| ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `POSTGRES_SCHEMA` | `public` | PostgreSQL schema for NG WhatsApp Gateway tables and TypeORM migration ledger (lower-case letters, digits and underscores) |
 
 **Use Cases:**

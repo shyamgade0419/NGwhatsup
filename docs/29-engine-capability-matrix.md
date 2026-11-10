@@ -153,12 +153,12 @@ reaching READY is not evidence that every patch landed. See docs/12 for the oper
 | 🔧⁴  | `scripts/patch-wwebjs-ready-sync.js`                       | whatsapp-web.js readiness pipeline                 | Two live-observed races: on a warm profile the page can reach `hasSynced=true` before the edge listener attaches (the whole post-auth pipeline silently never runs), and a partial `attachEventListeners` failure was swallowed (message bridge dead while sends still work). Adds an `eventsAttached` completion marker and fires the handler once when the level is already true; double-fire is deduped by the adapter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | exact-shape, one group all-or-nothing; unknown shape fails the build.                                                                                                                                                                                                                                                                                                 |
 | 🔧⁵  | `scripts/patch-baileys-appstate.js`                        | Baileys `lib/Socket/chats.js`                      | `resyncAppState`'s `while (collectionsToHandle.size)` loop: `query()` resolves `undefined` on its own 60s timeout, decoding to `{}`, and every loop exit — including the library's own attempts guard — lives inside `for (const key in decoded)`, which never runs on an empty decode. The loop would burn one 60s query per pass for the life of the socket (~1000 wasted queries/day). The patch adds the missing exit: empty decode → `break`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | exact-shape match; remove once upstream bounds the loop.                                                                                                                                                                                                                                                                                                              |
 | 🔧⁶  | `scripts/patch-baileys-newsletter-create.js`               | Baileys `lib/Socket/newsletter.js`                 | `parseNewsletterCreateResponse` reads `thread.picture.id` eagerly, but `newsletterCreate` sends only `{ name, description }` — there is no picture parameter anywhere in the chain — so `thread.picture` is null on EVERY create and the parse threw for all of them. WhatsApp creates the newsletter server-side BEFORE the response is parsed, so each call returned 500 while leaving a real channel behind, and `createChannel` is non-idempotent, so a client retrying a 5xx leaked one orphan per attempt (confirmed on the test account). `description` has the same defect whenever the caller omits one. The patch reads every nested field defensively so the response's `id` — the only place the new channel's id appears — always survives.                                                                                                                                                                                                                                                                                                                                                                                           | exact-shape match; remove once upstream tolerates a pictureless newsletter.                                                                                                                                                                                                                                                                                           |
-| 🔧¹² | `scripts/patch-baileys-pairing.js`                         | Baileys `lib/Socket/socket.js`, `messages-recv.js` | Send notification ACKs before login. Rotate retired registration secrets, persist them and refresh the current QR without consuming another reference.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Rc14 backport with one adaptation: once `creds.me` is set the QR timer stops, which upstream keeps running; remove once an upstream release includes both fixes. Upstream's timer then ends a pairing wait again when the QR refs run out, which can come before the 5 minutes NG WhatsApp Gateway waits for a requested code.                                                     |
+| 🔧¹² | `scripts/patch-baileys-pairing.js`                         | Baileys `lib/Socket/socket.js`, `messages-recv.js` | Send notification ACKs before login. Rotate retired registration secrets, persist them and refresh the current QR without consuming another reference.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Rc14 backport with one adaptation: once `creds.me` is set the QR timer stops, which upstream keeps running; remove once an upstream release includes both fixes. Upstream's timer then ends a pairing wait again when the QR refs run out, which can come before the 5 minutes NG WhatsApp Gateway waits for a requested code.                                        |
 | 🔧⁷  | `scripts/patch-wwebjs-participant-arity.js`                | whatsapp-web.js `GroupChat.js`                     | `removeParticipants`/`promoteParticipants`/`demoteParticipants` resolve each requested id against the group's own member collection and drop what they cannot find, then resolve `{status: 200}` for the batch. Dropping EVERY id left the WA Web request builder an empty repeated field, whose arity assertion threw — the caller saw an unnamed `500` on removal. Promote and demote have no such assertion, so they answered `200` claiming success for people WhatsApp never touched. The patch keeps the resolved array with its holes, skips the call when nothing resolved, and returns `matched` (one boolean per REQUESTED id) so the adapter can report a per-participant outcome instead of inventing one.                                                                                                                                                                                                                                                                                                                                                                                                                             | exact-shape match; remove once upstream reports which participants it acted on.                                                                                                                                                                                                                                                                                       |
 | 🔧⁸  | `scripts/patch-wwebjs-block.js`                            | whatsapp-web.js `Contact.js`                       | `Contact.block()`/`unblock()` resolved their target through `getContactToBlockOnlyUseIfNoAssociatedChat`, which WhatsApp Web removed, so both answered an opaque `500` for every id shape. The replacement helpers `handleBlock`/`handleUnblock` are modal-driven UI wrappers that block nothing when called headless, and the server now refuses a phone-keyed block outright (`trying to block a pn contact without a chat`) because individual chats are keyed by LID while wwjs folds every id back to a phone number. Resolves through `WAWebLidMigrationUtils.toUserLid` to the chat-owning identity and calls `blockContact`/`unblockContact` directly, falling back to the original contact when no LID or chat exists. Unblock then unblocks, once each, the other blocklist entries the same person holds under its phone id or LID.                                                                                                                                                                                                                                                                                                     | exact-shape match on both bodies; unknown shape fails the build.                                                                                                                                                                                                                                                                                                      |
 | 🔧⁹  | `scripts/patch-wwebjs-group-description.js`                | whatsapp-web.js `GroupChat.js`                     | `GroupChat.setDescription()` calls the page's `WAWebGroupModifyInfoJob.setGroupDescription(chatWid, description, newId, descId)` positionally, but that job now takes a single options object `{desc, groupWid, newDescId, prevDescId}`. The first positional argument lands where the object is read, every field comes back undefined, and `widToGroupJid(undefined)` throws inside the page — reaching the caller as a bare `500` while the library still types the method `Promise<boolean>`. `setGroupSubject` in the same module is still positional, which is why subjects kept working and made the Wid look innocent. The patch sends the options object, takes `newDescId` from `WARandomHex.randomHex(8)` as the product does, and maps an empty description to `desc: null` so it selects the job's delete branch rather than sending an empty body element. The open upstream fix #201895 changes the same call, but keeps `WAWebMsgKey.newId()` and passes an empty description through verbatim, so this patcher will not stand down when it lands and the `desc: null` mapping has to be carried over rather than dropped with it. | exact-shape match; unknown shape fails the build.                                                                                                                                                                                                                                                                                                                     |
 | 🔧¹⁰ | `scripts/patch-wwebjs-media-id.js`                         | whatsapp-web.js `Injected/Utils.js`                | Every media send built by `processMediaData` failed on the WhatsApp Web builds rolled out on 2026-09-17 with `Data passed to getter must include an id property`, while text still sent. `window.WWebJS.sendMessage` builds the outgoing message with `id: newMsgKey` and then spreads the media model returned by `processMediaData` into it, and on those builds that model carries an enumerable private `__x_id` that clobbers the id when the `Msg` model initialises. The patch deletes `message.__x_id` right after the object is built, which is upstream's own fix (whatsapp-web.js PR #201923, unmerged, no release after 1.34.7). It stands down once the installed tree carries that line.                                                                                                                                                                                                                                                                                                                                                                                                                                             | exact-shape match; unknown shape fails the build.                                                                                                                                                                                                                                                                                                                     |
-| 🔧¹¹ | `scripts/patch-wwebjs-send-error.js`                       | whatsapp-web.js `Client.js`                        | A send the page refused reached NG WhatsApp Gateway as the minified `t: t`, with nothing but Node frames: puppeteer rebuilds a page-side exception from its class name and description only, and WhatsApp Web's own error classes are minified to one letter and keep their detail in their own properties. The patch wraps the `window.WWebJS.sendMessage` call inside `Client.sendMessage`'s evaluate. A plain `Error`, which is what whatsapp-web.js's own send failures and WhatsApp Web's `No LID for user` already are, is rethrown as the same object, so its text and NG WhatsApp Gateway's matching on it are unchanged. Anything else is rethrown as an `Error` reading `page threw {...}`, a capped JSON summary of the WhatsApp Web build actually running, the constructor name, `name`, `message`, `stack` and the value's own properties. Diagnostic only: a successful send returns what it returned before, and the dead-page classifier never reads a captured error as a transport death.                                                                                                                                                                 | exact-shape match; unknown shape fails the build.                                                                                                                                                                                                                                                                                                                     |
+| 🔧¹¹ | `scripts/patch-wwebjs-send-error.js`                       | whatsapp-web.js `Client.js`                        | A send the page refused reached NG WhatsApp Gateway as the minified `t: t`, with nothing but Node frames: puppeteer rebuilds a page-side exception from its class name and description only, and WhatsApp Web's own error classes are minified to one letter and keep their detail in their own properties. The patch wraps the `window.WWebJS.sendMessage` call inside `Client.sendMessage`'s evaluate. A plain `Error`, which is what whatsapp-web.js's own send failures and WhatsApp Web's `No LID for user` already are, is rethrown as the same object, so its text and NG WhatsApp Gateway's matching on it are unchanged. Anything else is rethrown as an `Error` reading `page threw {...}`, a capped JSON summary of the WhatsApp Web build actually running, the constructor name, `name`, `message`, `stack` and the value's own properties. Diagnostic only: a successful send returns what it returned before, and the dead-page classifier never reads a captured error as a transport death.                                                                                                                                       | exact-shape match; unknown shape fails the build.                                                                                                                                                                                                                                                                                                                     |
 | 🔧¹³ | `scripts/patch-wwebjs-puppeteer.js`                        | whatsapp-web.js `Client.js`                        | Use Puppeteer 25 browser connection getters so destroy closes Chromium and logout removes authentication only after closure.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Both exact replacements must match; an unknown or partial shape aborts installation. Stands down when upstream carries both changes.                                                                                                                                                                                                                                  |
 
 ### 29.3.2 Which matrix rows depend on which patch
@@ -183,7 +183,7 @@ class of rows (🔧⁸ and 🔧¹⁰), stated in the table instead.
 | 🔧⁸ block/unblock           | `blockContact`, `unblockContact` on **wwjs**. Without it both answer an opaque `500` on every id, so the capability is dead rather than degraded; the blocklist read still works, which makes the failure look one-sided.                                                                                                                                                                                                                                                                                                                                |
 | 🔧¹⁰ media send repair      | Every **wwjs** media send built by `processMediaData`: `sendImageMessage`, `sendVideoMessage`, `sendAudioMessage` (voice notes included, through `ptt`), `sendDocumentMessage` and the media status posts. A sticker is built by `processStickerData`, which returns a new object rather than the media model. On the WhatsApp Web builds from 2026-09-17 the library's own id is clobbered by the media model and every such send answers a bare `500`, while text sends keep working. Not row-marked: it covers a whole class of rows rather than one. |
 | 🔧¹¹ send error capture     | No row. Every **wwjs** send that fails in the page reports what the page threw instead of `t: t`, but no cell's outcome depends on it: a send that works without the patch works the same way with it.                                                                                                                                                                                                                                                                                                                                                   |
-| 🔧¹² pairing refresh        | No row. Baileys linking by QR or pairing code: notification ACKs go out before login, retired registration secrets rotate and the current QR re-renders without spending a ref. Once a pairing code was requested (`creds.me` set) the QR timer stops, so running out of refs no longer ends that socket, as it does upstream. NG WhatsApp Gateway ends it instead 5 minutes after the latest pairing request, and the session registers again with a new QR.                                                                                                         |
+| 🔧¹² pairing refresh        | No row. Baileys linking by QR or pairing code: notification ACKs go out before login, retired registration secrets rotate and the current QR re-renders without spending a ref. Once a pairing code was requested (`creds.me` set) the QR timer stops, so running out of refs no longer ends that socket, as it does upstream. NG WhatsApp Gateway ends it instead 5 minutes after the latest pairing request, and the session registers again with a new QR.                                                                                            |
 
 Rows that are ✅ on **both** engines where one side is patch-dependent: `initialize` (🔧⁴ wwjs),
 `sendTextMessage` (🔧³ wwjs), `postTextStatus` / `postImageStatus` / `postVideoStatus` /
@@ -230,16 +230,16 @@ session runs; ⚠️ depends on the session engine; ❌ 501 on both.
 ### 29.4.1 Session & connection
 
 | Method               | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
-| -------------------- | ------------------- | ---------------- | ----------- |
-| `initialize`         | ✅                  | ✅🔧⁴            | ✅          |
-| `disconnect`         | ✅                  | ✅               | ✅          |
-| `logout`             | ✅                  | ✅               | ✅          |
-| `destroy`            | ✅                  | ✅               | ✅          |
-| `forceDestroy`       | ✅                  | ✅               | ✅          |
-| `getQRCode`          | ✅                  | ✅               | ✅          |
-| `requestPairingCode` | ✅                  | ✅               | ✅          |
-| `getStatus`          | ✅                  | ✅               | ✅          |
-| `probeLiveness`      | ✅ local            | ✅ round trip    | ⚙️ internal |
+| -------------------- | ------------------- | ---------------- | ------------------------ |
+| `initialize`         | ✅                  | ✅🔧⁴            | ✅                       |
+| `disconnect`         | ✅                  | ✅               | ✅                       |
+| `logout`             | ✅                  | ✅               | ✅                       |
+| `destroy`            | ✅                  | ✅               | ✅                       |
+| `forceDestroy`       | ✅                  | ✅               | ✅                       |
+| `getQRCode`          | ✅                  | ✅               | ✅                       |
+| `requestPairingCode` | ✅                  | ✅               | ✅                       |
+| `getStatus`          | ✅                  | ✅               | ✅                       |
+| `probeLiveness`      | ✅ local            | ✅ round trip    | ⚙️ internal              |
 
 `probeLiveness` is the one optional member of `IWhatsAppEngine`, and the two adapters answer it to
 different depths — which is what the optional marker exists to allow. wwjs races a real
@@ -254,124 +254,124 @@ is restarted.
 
 ### 29.4.2 Sending messages
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
-| --------------------- | ------------------- | ---------------- | --------------- |
-| `sendTextMessage`     | ✅                  | ✅🔧³            | ✅              |
-| `sendImageMessage`    | ✅                  | ✅               | ✅              |
-| `sendVideoMessage`    | ✅                  | ✅               | ✅              |
-| `sendAudioMessage`    | ✅                  | ✅               | ✅              |
-| `sendDocumentMessage` | ✅                  | ✅               | ✅              |
-| `sendStickerMessage`  | ✅                  | ✅               | ✅              |
-| `sendContactMessage`  | ✅                  | ✅               | ✅              |
-| `sendLocationMessage` | ✅                  | ✅               | ✅              |
-| `sendPollMessage`     | ✅                  | ✅               | ✅              |
-| `sendProduct`         | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `sendCatalog`         | ❌ lib              | ❌ lib           | ❌ not exposed  |
-| `replyToMessage`      | ✅                  | ✅               | ✅              |
-| `forwardMessage`      | ✅                  | ✅               | ✅              |
-| `sendChatState`       | ✅                  | ✅               | ✅              |
-| `sendSeen`            | ✅                  | ✅               | ✅              |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| --------------------- | ------------------- | ---------------- | ------------------------ |
+| `sendTextMessage`     | ✅                  | ✅🔧³            | ✅                       |
+| `sendImageMessage`    | ✅                  | ✅               | ✅                       |
+| `sendVideoMessage`    | ✅                  | ✅               | ✅                       |
+| `sendAudioMessage`    | ✅                  | ✅               | ✅                       |
+| `sendDocumentMessage` | ✅                  | ✅               | ✅                       |
+| `sendStickerMessage`  | ✅                  | ✅               | ✅                       |
+| `sendContactMessage`  | ✅                  | ✅               | ✅                       |
+| `sendLocationMessage` | ✅                  | ✅               | ✅                       |
+| `sendPollMessage`     | ✅                  | ✅               | ✅                       |
+| `sendProduct`         | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `sendCatalog`         | ❌ lib              | ❌ lib           | ❌ not exposed           |
+| `replyToMessage`      | ✅                  | ✅               | ✅                       |
+| `forwardMessage`      | ✅                  | ✅               | ✅                       |
+| `sendChatState`       | ✅                  | ✅               | ✅                       |
+| `sendSeen`            | ✅                  | ✅               | ✅                       |
 
 ### 29.4.3 Message management
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
-| --------------------- | ------------------- | ---------------- | --------------- |
-| `editMessage`         | ✅                  | ✅               | ✅              |
-| `deleteMessage`       | ✅                  | ✅               | ✅              |
-| `reactToMessage`      | ✅                  | ✅               | ✅              |
-| `starMessage`         | ✅                  | ✅               | ✅              |
-| `pinMessage`          | ✅                  | ✅               | ✅              |
-| `unpinMessage`        | ✅                  | ✅               | ✅              |
-| `getMessageReactions` | ❌ lib              | ✅               | ⚠️ wwjs only    |
-| `votePoll`            | ❌ lib              | ✅               | ⚠️ wwjs only    |
-| `clickButton`         | ✅                  | ❌ lib           | ⚠️ Baileys only |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| --------------------- | ------------------- | ---------------- | ------------------------ |
+| `editMessage`         | ✅                  | ✅               | ✅                       |
+| `deleteMessage`       | ✅                  | ✅               | ✅                       |
+| `reactToMessage`      | ✅                  | ✅               | ✅                       |
+| `starMessage`         | ✅                  | ✅               | ✅                       |
+| `pinMessage`          | ✅                  | ✅               | ✅                       |
+| `unpinMessage`        | ✅                  | ✅               | ✅                       |
+| `getMessageReactions` | ❌ lib              | ✅               | ⚠️ wwjs only             |
+| `votePoll`            | ❌ lib              | ✅               | ⚠️ wwjs only             |
+| `clickButton`         | ✅                  | ❌ lib           | ⚠️ Baileys only          |
 
 ### 29.4.4 Chats
 
-| Method              | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST  |
-| ------------------- | ------------------- | ---------------- | ------------ |
-| `getChats`          | ✅                  | ✅               | ✅           |
-| `getChatHistory`    | ❌ lib              | ✅               | ⚠️ wwjs only |
-| `archiveChat`       | ✅                  | ✅               | ✅           |
-| `clearChatMessages` | ✅                  | ✅               | ✅           |
-| `deleteChat`        | ✅                  | ✅               | ✅           |
-| `markUnread`        | ✅                  | ✅               | ✅           |
-| `muteChat`          | ✅                  | ✅               | ✅           |
-| `pinChat`           | ✅                  | ✅               | ✅           |
+| Method              | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| ------------------- | ------------------- | ---------------- | ------------------------ |
+| `getChats`          | ✅                  | ✅               | ✅                       |
+| `getChatHistory`    | ❌ lib              | ✅               | ⚠️ wwjs only             |
+| `archiveChat`       | ✅                  | ✅               | ✅                       |
+| `clearChatMessages` | ✅                  | ✅               | ✅                       |
+| `deleteChat`        | ✅                  | ✅               | ✅                       |
+| `markUnread`        | ✅                  | ✅               | ✅                       |
+| `muteChat`          | ✅                  | ✅               | ✅                       |
+| `pinChat`           | ✅                  | ✅               | ✅                       |
 
 ### 29.4.5 Contacts
 
 | Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
-| --------------------- | ------------------- | ---------------- | ----------- |
-| `getContacts`         | ✅                  | ✅               | ✅          |
-| `getContactById`      | ✅                  | ✅               | ✅          |
-| `upsertContact`       | ✅                  | ✅               | ✅          |
-| `deleteContact`       | ✅                  | ✅               | ✅          |
-| `blockContact`        | ✅                  | ✅               | ✅          |
-| `unblockContact`      | ✅                  | ✅               | ✅          |
-| `getBlockedContacts`  | ✅                  | ✅               | ✅          |
-| `checkNumberExists`   | ✅                  | ✅               | ⚙️ internal |
-| `getNumberId`         | ✅                  | ✅               | ✅          |
-| `getPhoneNumber`      | ✅                  | ✅               | ⚙️ internal |
-| `getPushName`         | ✅                  | ✅               | ⚙️ internal |
-| `resolveContactPhone` | ✅                  | ✅               | ✅          |
-| `getProfilePicture`   | ✅                  | ✅               | ✅          |
+| --------------------- | ------------------- | ---------------- | ------------------------ |
+| `getContacts`         | ✅                  | ✅               | ✅                       |
+| `getContactById`      | ✅                  | ✅               | ✅                       |
+| `upsertContact`       | ✅                  | ✅               | ✅                       |
+| `deleteContact`       | ✅                  | ✅               | ✅                       |
+| `blockContact`        | ✅                  | ✅               | ✅                       |
+| `unblockContact`      | ✅                  | ✅               | ✅                       |
+| `getBlockedContacts`  | ✅                  | ✅               | ✅                       |
+| `checkNumberExists`   | ✅                  | ✅               | ⚙️ internal              |
+| `getNumberId`         | ✅                  | ✅               | ✅                       |
+| `getPhoneNumber`      | ✅                  | ✅               | ⚙️ internal              |
+| `getPushName`         | ✅                  | ✅               | ⚙️ internal              |
+| `resolveContactPhone` | ✅                  | ✅               | ✅                       |
+| `getProfilePicture`   | ✅                  | ✅               | ✅                       |
 
 ### 29.4.6 Groups
 
-| Method                           | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
-| -------------------------------- | ------------------- | ---------------- | --------------- |
-| `createGroup`                    | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `getGroups`                      | ✅                  | ✅               | ✅              |
-| `getGroupInfo`                   | ✅                  | ✅               | ✅              |
-| `addParticipants`                | ✅                  | ✅               | ✅              |
-| `removeParticipants`             | ✅                  | ✅🔧⁷            | ✅              |
-| `promoteParticipants`            | ✅                  | ✅🔧⁷            | ✅              |
-| `demoteParticipants`             | ✅                  | ✅🔧⁷            | ✅              |
-| `approveGroupMembershipRequests` | ✅                  | ✅               | ✅              |
-| `rejectGroupMembershipRequests`  | ✅                  | ✅               | ✅              |
-| `getGroupMembershipRequests`     | ✅                  | ✅               | ✅              |
-| `leaveGroup`                     | ✅                  | ✅               | ✅              |
-| `getGroupInviteCode`             | ✅                  | ✅               | ✅              |
-| `joinGroupViaInviteCode`         | ✅                  | ✅               | ✅              |
-| `revokeGroupInviteCode`          | ✅                  | ✅               | ✅              |
-| `getGroupJoinInfo`               | ✅                  | ✅               | ✅              |
-| `setGroupSubject`                | ✅                  | ✅               | ✅              |
-| `setGroupDescription`            | ✅                  | ✅🔧⁹            | ✅              |
-| `setGroupPicture`                | ✅                  | ✅               | ✅              |
-| `deleteGroupPicture`             | ✅                  | ✅               | ✅              |
-| `setGroupMessagesAdminsOnly`     | ✅                  | ✅               | ✅              |
-| `setGroupInfoAdminsOnly`         | ✅                  | ✅               | ✅              |
-| `setGroupMemberAddMode`          | ✅                  | ✅               | ✅              |
-| `setGroupEphemeral`              | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `setGroupMemberLabel`            | ✅                  | ❌ lib           | ⚠️ baileys only |
+| Method                           | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| -------------------------------- | ------------------- | ---------------- | ------------------------ |
+| `createGroup`                    | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `getGroups`                      | ✅                  | ✅               | ✅                       |
+| `getGroupInfo`                   | ✅                  | ✅               | ✅                       |
+| `addParticipants`                | ✅                  | ✅               | ✅                       |
+| `removeParticipants`             | ✅                  | ✅🔧⁷            | ✅                       |
+| `promoteParticipants`            | ✅                  | ✅🔧⁷            | ✅                       |
+| `demoteParticipants`             | ✅                  | ✅🔧⁷            | ✅                       |
+| `approveGroupMembershipRequests` | ✅                  | ✅               | ✅                       |
+| `rejectGroupMembershipRequests`  | ✅                  | ✅               | ✅                       |
+| `getGroupMembershipRequests`     | ✅                  | ✅               | ✅                       |
+| `leaveGroup`                     | ✅                  | ✅               | ✅                       |
+| `getGroupInviteCode`             | ✅                  | ✅               | ✅                       |
+| `joinGroupViaInviteCode`         | ✅                  | ✅               | ✅                       |
+| `revokeGroupInviteCode`          | ✅                  | ✅               | ✅                       |
+| `getGroupJoinInfo`               | ✅                  | ✅               | ✅                       |
+| `setGroupSubject`                | ✅                  | ✅               | ✅                       |
+| `setGroupDescription`            | ✅                  | ✅🔧⁹            | ✅                       |
+| `setGroupPicture`                | ✅                  | ✅               | ✅                       |
+| `deleteGroupPicture`             | ✅                  | ✅               | ✅                       |
+| `setGroupMessagesAdminsOnly`     | ✅                  | ✅               | ✅                       |
+| `setGroupInfoAdminsOnly`         | ✅                  | ✅               | ✅                       |
+| `setGroupMemberAddMode`          | ✅                  | ✅               | ✅                       |
+| `setGroupEphemeral`              | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `setGroupMemberLabel`            | ✅                  | ❌ lib           | ⚠️ baileys only          |
 
 ### 29.4.7 Channels
 
-| Method                     | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
-| -------------------------- | ------------------- | ---------------- | --------------- |
-| `createChannel`            | ✅🔧⁶               | ✅               | ✅              |
-| `deleteChannel`            | ✅                  | ✅               | ✅              |
-| `muteChannel`              | ✅                  | ✅               | ✅              |
-| `demoteChannelAdmin`       | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `transferChannelOwnership` | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `getChannelById`           | ✅                  | ✅               | ✅              |
-| `getChannelMessages`       | ❌ gap              | ✅               | ⚠️ wwjs only    |
-| `getSubscribedChannels`    | ❌ lib              | ✅               | ⚠️ wwjs only    |
-| `subscribeToChannel`       | ✅                  | ❌ gap           | ⚠️ baileys only |
-| `unsubscribeFromChannel`   | ✅                  | ✅               | ✅              |
+| Method                     | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| -------------------------- | ------------------- | ---------------- | ------------------------ |
+| `createChannel`            | ✅🔧⁶               | ✅               | ✅                       |
+| `deleteChannel`            | ✅                  | ✅               | ✅                       |
+| `muteChannel`              | ✅                  | ✅               | ✅                       |
+| `demoteChannelAdmin`       | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `transferChannelOwnership` | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `getChannelById`           | ✅                  | ✅               | ✅                       |
+| `getChannelMessages`       | ❌ gap              | ✅               | ⚠️ wwjs only             |
+| `getSubscribedChannels`    | ❌ lib              | ✅               | ⚠️ wwjs only             |
+| `subscribeToChannel`       | ✅                  | ❌ gap           | ⚠️ baileys only          |
+| `unsubscribeFromChannel`   | ✅                  | ✅               | ✅                       |
 
 ### 29.4.8 Status / stories
 
-| Method               | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST  |
-| -------------------- | ------------------- | ---------------- | ------------ |
-| `postTextStatus`     | ✅                  | ✅🔧²            | ✅           |
-| `postImageStatus`    | ✅                  | ✅🔧²            | ✅           |
-| `postVideoStatus`    | ✅                  | ✅🔧²            | ✅           |
-| `postVoiceStatus`    | ✅                  | ✅🔧²            | ✅           |
-| `deleteStatus`       | ✅                  | ✅               | ✅           |
-| `getContactStatus`   | ❌ lib              | ✅               | ✅ (store) ‡ |
-| `getContactStatuses` | ❌ lib              | ✅               | ✅ (store) ‡ |
+| Method               | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| -------------------- | ------------------- | ---------------- | ------------------------ |
+| `postTextStatus`     | ✅                  | ✅🔧²            | ✅                       |
+| `postImageStatus`    | ✅                  | ✅🔧²            | ✅                       |
+| `postVideoStatus`    | ✅                  | ✅🔧²            | ✅                       |
+| `postVoiceStatus`    | ✅                  | ✅🔧²            | ✅                       |
+| `deleteStatus`       | ✅                  | ✅               | ✅                       |
+| `getContactStatus`   | ❌ lib              | ✅               | ✅ (store) ‡             |
+| `getContactStatuses` | ❌ lib              | ✅               | ✅ (store) ‡             |
 
 ‡ Status **reads** are served from `StatusStoreService` (fed by inbound status ingestion on both
 engines), not by calling the engine — so the REST API is engine-neutral here even though the
@@ -380,42 +380,42 @@ answers 501.
 
 ### 29.4.9 Labels (WA Business)
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
-| --------------------- | ------------------- | ---------------- | --------------- |
-| `getLabels`           | ❌ lib              | ✅               | ⚠️ wwjs only    |
-| `getLabelById`        | ❌ lib              | ✅               | ⚠️ wwjs only    |
-| `getChatLabels`       | ❌ lib              | ✅               | ⚠️ wwjs only    |
-| `getChatsByLabel`     | ❌ lib              | ✅               | ⚠️ wwjs only    |
-| `addLabelToChat`      | ✅                  | ✅               | ✅              |
-| `removeLabelFromChat` | ✅                  | ✅               | ✅              |
-| `upsertLabel`         | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `deleteLabel`         | ✅                  | ❌ lib           | ⚠️ baileys only |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| --------------------- | ------------------- | ---------------- | ------------------------ |
+| `getLabels`           | ❌ lib              | ✅               | ⚠️ wwjs only             |
+| `getLabelById`        | ❌ lib              | ✅               | ⚠️ wwjs only             |
+| `getChatLabels`       | ❌ lib              | ✅               | ⚠️ wwjs only             |
+| `getChatsByLabel`     | ❌ lib              | ✅               | ⚠️ wwjs only             |
+| `addLabelToChat`      | ✅                  | ✅               | ✅                       |
+| `removeLabelFromChat` | ✅                  | ✅               | ✅                       |
+| `upsertLabel`         | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `deleteLabel`         | ✅                  | ❌ lib           | ⚠️ baileys only          |
 
 ### 29.4.10 Catalog & products (WA Business)
 
-| Method        | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
-| ------------- | ------------------- | ---------------- | --------------- |
-| `getCatalog`  | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `getProducts` | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `getProduct`  | ✅                  | ❌ lib           | ⚠️ baileys only |
+| Method        | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| ------------- | ------------------- | ---------------- | ------------------------ |
+| `getCatalog`  | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `getProducts` | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `getProduct`  | ✅                  | ❌ lib           | ⚠️ baileys only          |
 
 ### 29.4.11 Own profile & presence
 
 | Method                 | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
-| ---------------------- | ------------------- | ---------------- | ----------- |
-| `setProfileName`       | ✅                  | ✅               | ✅          |
-| `setProfilePicture`    | ✅                  | ✅               | ✅          |
-| `deleteProfilePicture` | ✅                  | ✅               | ✅          |
-| `setProfileStatus`     | ✅                  | ✅               | ✅          |
-| `setOnlinePresence`    | ✅                  | ✅               | ✅          |
+| ---------------------- | ------------------- | ---------------- | ------------------------ |
+| `setProfileName`       | ✅                  | ✅               | ✅                       |
+| `setProfilePicture`    | ✅                  | ✅               | ✅                       |
+| `deleteProfilePicture` | ✅                  | ✅               | ✅                       |
+| `setProfileStatus`     | ✅                  | ✅               | ✅                       |
+| `setOnlinePresence`    | ✅                  | ✅               | ✅                       |
 
 ### 29.4.12 Presence & calls
 
-| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST     |
-| --------------------- | ------------------- | ---------------- | --------------- |
-| `subscribeToPresence` | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `rejectCall`          | ✅                  | ❌ lib           | ⚠️ baileys only |
-| `createCallLink`      | ✅                  | ✅               | ✅              |
+| Method                | Baileys adapter 🔧⁵ | wwjs adapter 🔧¹ | NG WhatsApp Gateway REST |
+| --------------------- | ------------------- | ---------------- | ------------------------ |
+| `subscribeToPresence` | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `rejectCall`          | ✅                  | ❌ lib           | ⚠️ baileys only          |
+| `createCallLink`      | ✅                  | ✅               | ✅                       |
 
 **Totals:** 114 methods → 228 adapter cells: **200 ✅, 28 ❌** (2 adapter-gaps, 26
 library-limitations, 0 uncertain) across 27 methods. From the REST caller's side: **89** methods
@@ -451,7 +451,7 @@ Exposure column values:
 
 **Messaging & media** (19)
 
-| Library method                 | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Library method                 | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                                                                                                                                                                                |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `getMediaHost`                 | 🔩 plumbing                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `readMessages`                 | ✅ `sendSeen`                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -475,7 +475,7 @@ Exposure column values:
 
 **Groups** (19)
 
-| Library method                   | NG WhatsApp Gateway exposure                                                                         |
+| Library method                   | NG WhatsApp Gateway exposure                                                            |
 | -------------------------------- | --------------------------------------------------------------------------------------- |
 | `groupAcceptInvite`              | ✅ `joinGroupViaInviteCode`                                                             |
 | `groupAcceptInviteV4`            | ❌ **not exposed**                                                                      |
@@ -500,35 +500,35 @@ Exposure column values:
 **Communities** (23) — the largest single gap: an entire WhatsApp feature area (groups-of-groups)
 with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no community API at all.
 
-| Library method                       | NG WhatsApp Gateway exposure    |
-| ------------------------------------ | ------------------ |
-| `communityAcceptInvite`              | ❌ **not exposed** |
-| `communityAcceptInviteV4`            | ❌ **not exposed** |
-| `communityCreate`                    | ❌ **not exposed** |
-| `communityCreateGroup`               | ❌ **not exposed** |
-| `communityFetchAllParticipating`     | ❌ **not exposed** |
-| `communityFetchLinkedGroups`         | ❌ **not exposed** |
-| `communityGetInviteInfo`             | ❌ **not exposed** |
-| `communityInviteCode`                | ❌ **not exposed** |
-| `communityJoinApprovalMode`          | ❌ **not exposed** |
-| `communityLeave`                     | ❌ **not exposed** |
-| `communityLinkGroup`                 | ❌ **not exposed** |
-| `communityMemberAddMode`             | ❌ **not exposed** |
-| `communityMetadata`                  | ❌ **not exposed** |
-| `communityParticipantsUpdate`        | ❌ **not exposed** |
-| `communityRequestParticipantsList`   | ❌ **not exposed** |
-| `communityRequestParticipantsUpdate` | ❌ **not exposed** |
-| `communityRevokeInvite`              | ❌ **not exposed** |
-| `communityRevokeInviteV4`            | ❌ **not exposed** |
-| `communitySettingUpdate`             | ❌ **not exposed** |
-| `communityToggleEphemeral`           | ❌ **not exposed** |
-| `communityUnlinkGroup`               | ❌ **not exposed** |
-| `communityUpdateDescription`         | ❌ **not exposed** |
-| `communityUpdateSubject`             | ❌ **not exposed** |
+| Library method                       | NG WhatsApp Gateway exposure |
+| ------------------------------------ | ---------------------------- |
+| `communityAcceptInvite`              | ❌ **not exposed**           |
+| `communityAcceptInviteV4`            | ❌ **not exposed**           |
+| `communityCreate`                    | ❌ **not exposed**           |
+| `communityCreateGroup`               | ❌ **not exposed**           |
+| `communityFetchAllParticipating`     | ❌ **not exposed**           |
+| `communityFetchLinkedGroups`         | ❌ **not exposed**           |
+| `communityGetInviteInfo`             | ❌ **not exposed**           |
+| `communityInviteCode`                | ❌ **not exposed**           |
+| `communityJoinApprovalMode`          | ❌ **not exposed**           |
+| `communityLeave`                     | ❌ **not exposed**           |
+| `communityLinkGroup`                 | ❌ **not exposed**           |
+| `communityMemberAddMode`             | ❌ **not exposed**           |
+| `communityMetadata`                  | ❌ **not exposed**           |
+| `communityParticipantsUpdate`        | ❌ **not exposed**           |
+| `communityRequestParticipantsList`   | ❌ **not exposed**           |
+| `communityRequestParticipantsUpdate` | ❌ **not exposed**           |
+| `communityRevokeInvite`              | ❌ **not exposed**           |
+| `communityRevokeInviteV4`            | ❌ **not exposed**           |
+| `communitySettingUpdate`             | ❌ **not exposed**           |
+| `communityToggleEphemeral`           | ❌ **not exposed**           |
+| `communityUnlinkGroup`               | ❌ **not exposed**           |
+| `communityUpdateDescription`         | ❌ **not exposed**           |
+| `communityUpdateSubject`             | ❌ **not exposed**           |
 
 **Newsletters (channels)** (19)
 
-| Library method                | NG WhatsApp Gateway exposure                              |
+| Library method                | NG WhatsApp Gateway exposure                 |
 | ----------------------------- | -------------------------------------------- |
 | `newsletterAdminCount`        | ❌ **not exposed**                           |
 | `newsletterChangeOwner`       | ✅ `transferChannelOwnership`                |
@@ -552,7 +552,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Business & catalog** (12)
 
-| Library method          | NG WhatsApp Gateway exposure                                                                                    |
+| Library method          | NG WhatsApp Gateway exposure                                                                       |
 | ----------------------- | -------------------------------------------------------------------------------------------------- |
 | `addOrEditQuickReply`   | ❌ **not exposed**                                                                                 |
 | `fetchMessageHistory`   | ❌ **not exposed**                                                                                 |
@@ -569,7 +569,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Labels** (6)
 
-| Library method       | NG WhatsApp Gateway exposure                 |
+| Library method       | NG WhatsApp Gateway exposure    |
 | -------------------- | ------------------------------- |
 | `addChatLabel`       | ✅ `addLabelToChat`             |
 | `addLabel`           | ✅ `upsertLabel`, `deleteLabel` |
@@ -580,7 +580,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Privacy & account settings** (13)
 
-| Library method                     | NG WhatsApp Gateway exposure                                                                                                                                                                                      |
+| Library method                     | NG WhatsApp Gateway exposure                                                                                                                                                                         |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `fetchPrivacySettings`             | ❌ **not exposed** — never called by the adapter; the library reaches it internally from `readMessages` (`sendSeen`), and its raw TypeError on an unanswered query is what forces the deadline bound |
 | `issuePrivacyTokens`               | ❌ **not exposed**                                                                                                                                                                                   |
@@ -598,7 +598,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Queries** (8)
 
-| Library method                 | NG WhatsApp Gateway exposure                                                                                                                                        |
+| Library method                 | NG WhatsApp Gateway exposure                                                                                                                           |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `executeUSyncQuery`            | ❌ **not exposed**                                                                                                                                     |
 | `fetchAccountReachoutTimelock` | ⚙️ internal wiring                                                                                                                                     |
@@ -611,7 +611,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Profile, contacts & presence** (12)
 
-| Library method           | NG WhatsApp Gateway exposure                                                                                        |
+| Library method           | NG WhatsApp Gateway exposure                                                                           |
 | ------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `addOrEditContact`       | ✅ `upsertContact`                                                                                     |
 | `createCallLink`         | ✅ `createCallLink`                                                                                    |
@@ -628,7 +628,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Socket, session & plumbing** (21)
 
-| Library method                    | NG WhatsApp Gateway exposure                                                                                                                                                             |
+| Library method                    | NG WhatsApp Gateway exposure                                                                                                                                                |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `appPatch`                        | 🔩 plumbing                                                                                                                                                                 |
 | `assertSessions`                  | 🔩 plumbing                                                                                                                                                                 |
@@ -656,7 +656,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Session & connection** (16)
 
-| Library method             | NG WhatsApp Gateway exposure                                                                                   |
+| Library method             | NG WhatsApp Gateway exposure                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------------------- |
 | `cancelPairingCode`        | ❌ **not exposed** — session/transport setting, not a WhatsApp capability                         |
 | `constructor`              | — class plumbing (not a capability)                                                               |
@@ -677,7 +677,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Messages** (8)
 
-| Library method                 | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                                          |
+| Library method                 | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                             |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `getMessageById`               | ❌ **not exposed**                                                                                                                                                                                                                                                       |
 | `getPinnedMessages`            | ❌ **not exposed**                                                                                                                                                                                                                                                       |
@@ -690,7 +690,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Chats** (9)
 
-| Library method   | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                                                                                                                                                          |
+| Library method   | NG WhatsApp Gateway exposure                                                                                                                                                                                                                                                                                                                                                             |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `archiveChat`    | ✅ `archiveChat`                                                                                                                                                                                                                                                                                                                                                                         |
 | `getChatById`    | ✅ `muteChannel`, `sendSeen`, `clearChatMessages`, `markUnread`, `deleteChat`, `sendChatState`, `getGroupInfo`, `addParticipants`, `leaveGroup`, `setGroupSubject`, `setGroupDescription`, `getGroupInviteCode`, `revokeGroupInviteCode`, `getChatLabels`, `replyToMessage`, `forwardMessage`, `reactToMessage`, `getMessageReactions`, `getChatHistory`, `deleteMessage`, `editMessage` |
@@ -704,7 +704,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Groups** (7)
 
-| Library method                   | NG WhatsApp Gateway exposure                     |
+| Library method                   | NG WhatsApp Gateway exposure        |
 | -------------------------------- | ----------------------------------- |
 | `acceptInvite`                   | ✅ `joinGroupViaInviteCode`         |
 | `approveGroupMembershipRequests` | ✅ `approveGroupMembershipRequests` |
@@ -716,7 +716,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Channels** (12)
 
-| Library method             | NG WhatsApp Gateway exposure                                                                                      |
+| Library method             | NG WhatsApp Gateway exposure                                                                         |
 | -------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `acceptChannelAdminInvite` | ❌ **not exposed**                                                                                   |
 | `createChannel`            | ✅ `createChannel`                                                                                   |
@@ -733,7 +733,7 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Labels** (5)
 
-| Library method      | NG WhatsApp Gateway exposure                                                                                     |
+| Library method      | NG WhatsApp Gateway exposure                                                                        |
 | ------------------- | --------------------------------------------------------------------------------------------------- |
 | `addOrRemoveLabels` | ✅ `addLabelToChat`, `removeLabelFromChat`                                                          |
 | `getChatLabels`     | ❌ **not exposed** — the adapter reads the chat and calls `Chat.getLabels()`, not the Client method |
@@ -743,15 +743,15 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Status & broadcasts** (3)
 
-| Library method        | NG WhatsApp Gateway exposure         |
-| --------------------- | ----------------------- |
-| `getBroadcastById`    | ✅ `getContactStatus`   |
-| `getBroadcasts`       | ✅ `getContactStatuses` |
-| `revokeStatusMessage` | ✅ `deleteStatus`       |
+| Library method        | NG WhatsApp Gateway exposure |
+| --------------------- | ---------------------------- |
+| `getBroadcastById`    | ✅ `getContactStatus`        |
+| `getBroadcasts`       | ✅ `getContactStatuses`      |
+| `revokeStatusMessage` | ✅ `deleteStatus`            |
 
 **Contacts & numbers** (11)
 
-| Library method                 | NG WhatsApp Gateway exposure                                                  |
+| Library method                 | NG WhatsApp Gateway exposure                                     |
 | ------------------------------ | ---------------------------------------------------------------- |
 | `deleteAddressbookContact`     | ✅ `deleteContact`                                               |
 | `getBlockedContacts`           | ✅ `getBlockedContacts`                                          |
@@ -767,28 +767,28 @@ with zero NG WhatsApp Gateway surface. Baileys-only; whatsapp-web.js has no comm
 
 **Business** (2)
 
-| Library method          | NG WhatsApp Gateway exposure    |
-| ----------------------- | ------------------ |
-| `addOrEditCustomerNote` | ❌ **not exposed** |
-| `getCustomerNote`       | ❌ **not exposed** |
+| Library method          | NG WhatsApp Gateway exposure |
+| ----------------------- | ---------------------------- |
+| `addOrEditCustomerNote` | ❌ **not exposed**           |
+| `getCustomerNote`       | ❌ **not exposed**           |
 
 **Profile & presence** (7)
 
-| Library method            | NG WhatsApp Gateway exposure           |
-| ------------------------- | ------------------------- |
-| `deleteProfilePicture`    | ✅ `deleteProfilePicture` |
-| `getProfilePicUrl`        | ✅ `getProfilePicture`    |
-| `sendPresenceAvailable`   | ✅ `setOnlinePresence`    |
-| `sendPresenceUnavailable` | ✅ `setOnlinePresence`    |
-| `setDisplayName`          | ✅ `setProfileName`       |
-| `setProfilePicture`       | ✅ `setProfilePicture`    |
-| `setStatus`               | ✅ `setProfileStatus`     |
+| Library method            | NG WhatsApp Gateway exposure |
+| ------------------------- | ---------------------------- |
+| `deleteProfilePicture`    | ✅ `deleteProfilePicture`    |
+| `getProfilePicUrl`        | ✅ `getProfilePicture`       |
+| `sendPresenceAvailable`   | ✅ `setOnlinePresence`       |
+| `sendPresenceUnavailable` | ✅ `setOnlinePresence`       |
+| `setDisplayName`          | ✅ `setProfileName`          |
+| `setProfilePicture`       | ✅ `setProfilePicture`       |
+| `setStatus`               | ✅ `setProfileStatus`        |
 
 **Misc** (1)
 
-| Library method   | NG WhatsApp Gateway exposure     |
-| ---------------- | ------------------- |
-| `createCallLink` | ✅ `createCallLink` |
+| Library method   | NG WhatsApp Gateway exposure |
+| ---------------- | ---------------------------- |
+| `createCallLink` | ✅ `createCallLink`          |
 
 ### 29.5.3 Supported by BOTH libraries — missing only in NG WhatsApp Gateway
 
@@ -817,7 +817,7 @@ NG WhatsApp Gateway consumes events by normalizing them into `EngineEventCallbac
 
 **Baileys (34):**
 
-| Event                       | NG WhatsApp Gateway                                              |     | Event                            | NG WhatsApp Gateway                          |
+| Event                       | NG WhatsApp Gateway                                 |     | Event                            | NG WhatsApp Gateway             |
 | --------------------------- | --------------------------------------------------- | --- | -------------------------------- | ------------------------------- |
 | `messages.upsert`           | ✅                                                  |     | `chats.lock`                     | ❌                              |
 | `messages.update`           | ✅                                                  |     | `message-capping.update`         | ❌                              |
@@ -839,24 +839,24 @@ NG WhatsApp Gateway consumes events by normalizing them into `EngineEventCallbac
 
 **whatsapp-web.js (31):**
 
-| Event                       | NG WhatsApp Gateway       |     | Event                  | NG WhatsApp Gateway                                                                          |
-| --------------------------- | ------------ | --- | ---------------------- | ------------------------------------------------------------------------------- |
-| `message`                   | ✅           |     | `change_battery`       | ❌                                                                              |
-| `message_create`            | ✅           |     | `change_state`         | ❌                                                                              |
-| `message_ack`               | ✅           |     | `chat_archived`        | ❌ candidate                                                                    |
-| `message_edit`              | ✅           |     | `chat_removed`         | ❌                                                                              |
-| `message_reaction`          | ✅           |     | `contact_changed`      | ❌                                                                              |
-| `message_revoke_everyone`   | ✅           |     | `group_admin_changed`  | ❌                                                                              |
-| `message_revoke_me`         | ❌ candidate |     | `loading_screen`       | ❌                                                                              |
-| `message_ciphertext`        | ✅           |     | `media_uploaded`       | ❌                                                                              |
-| `message_ciphertext_failed` | ❌           |     | `remote_session_saved` | ❌                                                                              |
-| `call`                      | ✅           |     | `unread_count`         | ❌ candidate                                                                    |
-| `qr`                        | ✅           |     | `vote_update`          | ✅                                                                              |
-| `ready`                     | ✅           |     | `authenticated`        | ✅                                                                              |
-| `auth_failure`              | ✅           |     | `code`                 | ❌ — the pairing code is the return value of `requestPairingCode`, not an event |
-| `disconnected`              | ✅           |     | `group_join`           | ✅                                                                              |
-| `group_leave`               | ✅           |     | `group_update`         | ✅                                                                              |
-| `group_membership_request`  | ✅           |     |                        |                                                                                 |
+| Event                       | NG WhatsApp Gateway |     | Event                  | NG WhatsApp Gateway                                                             |
+| --------------------------- | ------------------- | --- | ---------------------- | ------------------------------------------------------------------------------- |
+| `message`                   | ✅                  |     | `change_battery`       | ❌                                                                              |
+| `message_create`            | ✅                  |     | `change_state`         | ❌                                                                              |
+| `message_ack`               | ✅                  |     | `chat_archived`        | ❌ candidate                                                                    |
+| `message_edit`              | ✅                  |     | `chat_removed`         | ❌                                                                              |
+| `message_reaction`          | ✅                  |     | `contact_changed`      | ❌                                                                              |
+| `message_revoke_everyone`   | ✅                  |     | `group_admin_changed`  | ❌                                                                              |
+| `message_revoke_me`         | ❌ candidate        |     | `loading_screen`       | ❌                                                                              |
+| `message_ciphertext`        | ✅                  |     | `media_uploaded`       | ❌                                                                              |
+| `message_ciphertext_failed` | ❌                  |     | `remote_session_saved` | ❌                                                                              |
+| `call`                      | ✅                  |     | `unread_count`         | ❌ candidate                                                                    |
+| `qr`                        | ✅                  |     | `vote_update`          | ✅                                                                              |
+| `ready`                     | ✅                  |     | `authenticated`        | ✅                                                                              |
+| `auth_failure`              | ✅                  |     | `code`                 | ❌ — the pairing code is the return value of `requestPairingCode`, not an event |
+| `disconnected`              | ✅                  |     | `group_join`           | ✅                                                                              |
+| `group_leave`               | ✅                  |     | `group_update`         | ✅                                                                              |
+| `group_membership_request`  | ✅                  |     |                        |                                                                                 |
 
 ## 29.6 The 28 not-available cells in detail
 
@@ -883,24 +883,24 @@ adapter boundary — none silently stubs.
 
 ### 29.6.2 wwjs adapter (16 cells)
 
-| Method                     | Cause | What's missing (evidence)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| -------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `subscribeToChannel`       | gap   | `Client.subscribeToChannel(channelId)` (`Client.js:2542`) takes a channel **id** and resolves a boolean — it cannot satisfy the subscribe-by-invite-code contract alone. Correct wiring is two-step: `getChannelByInviteCode(inviteCode)` (`Client.js:1716`) → `subscribeToChannel(channel.id)`, unverified against a live session (the previous one-step call was a phantom success). The one remaining wwjs adapter-gap.                                                                                                                                                                                                                                                                                                                     |
+| Method                     | Cause | What's missing (evidence)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `subscribeToChannel`       | gap   | `Client.subscribeToChannel(channelId)` (`Client.js:2542`) takes a channel **id** and resolves a boolean — it cannot satisfy the subscribe-by-invite-code contract alone. Correct wiring is two-step: `getChannelByInviteCode(inviteCode)` (`Client.js:1716`) → `subscribeToChannel(channel.id)`, unverified against a live session (the previous one-step call was a phantom success). The one remaining wwjs adapter-gap.                                                                                                                                                                                                                                                                                                                                  |
 | `createGroup`              | lib   | `Client.createGroup` exists and is typed `Promise<CreateGroupResult \| string>`, but its injected evaluate reaches a WhatsApp Web internal that no longer exposes `findImpl` (`Client.js:2325`). Measured live on **two** builds — `2.3000.1044858477-alpha` auto-resolved and `2.3000.1044770897-alpha` pinned — both `TypeError: this.findImpl is not a function`, reaching the caller as a bare 500. Bare and `@c.us`-qualified participant ids fail identically, so the id shape is not the variable; varying the build is what separates this from registry pin drift. `findImpl` is in neither the installed `Client.js` nor any NG WhatsApp Gateway patcher, so it belongs to the page and cannot be patched around. Baileys serves this capability. |
-| `demoteChannelAdmin`       | lib   | `Client.demoteChannelAdmin` exists (`index.d.ts:35`) but its page body calls `window.require('WAWebDemoteNewsletterAdminAction').demoteNewsletterAdmin` (`Client.js:1907-1925`), and a module probe on a live session (Web `2.3000.1044824727-alpha`, unpinned) returned that module resolving with `demoteNewsletterAdmin: undefined`. The sibling path used inside `transferChannelOwnership` (`WAWebNewsletterDemoteAdminJob.demoteNewsletterAdminAction`) is undefined too, so there is nothing to retarget. Baileys serves this capability.                                                                                                                                                                                               |
-| `transferChannelOwnership` | lib   | `Client.transferChannelOwnership` exists (`index.d.ts:375`) and its page function `WAWebChangeNewsletterOwnerAction.changeNewsletterOwnerAction` is present, but on Web `2.3000.1044824727-alpha` it rejects every call **locally** with `contact-not-found-in-newsletter-subscriber-list` — 4-9ms against a 352-531ms known-server baseline measured in the same page, so it never reaches WhatsApp. Unchanged by subscribing the target, promoting it to admin, or restarting the session; the only repopulation path, `WAWebCollections.NewsletterMetadataCollection.update`, is `undefined`. Baileys serves this capability.                                                                                                               |
-| `upsertLabel`              | lib   | 1.34.7 reads labels and assigns them (`getLabels`, `getLabelById`, `getChatLabels`, `getChatsByLabelId`, `addOrRemoveLabels`, `index.d.ts:129-154`) but exposes nothing that creates/edits a label definition.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `deleteLabel`              | lib   | Same as above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `subscribeToPresence`      | lib   | Only `sendPresenceAvailable`/`sendPresenceUnavailable` (`index.d.ts:230,233`), which publish the _account's own_ presence; no subscribe call and no presence event is emitted.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `rejectCall`               | lib   | `Call.reject()` exists and is typed `Promise<void>` (`index.d.ts:2417`), but measured live on 2026-09-17 on NG WhatsApp Gateway 0.23.4 with WhatsApp Web `2.3000.1047471845-alpha` the reject resolved and NG WhatsApp Gateway logged the call as auto-rejected while the caller's phone kept ringing until it timed out. The cause is not established. The page function it runs, `WWebJS.rejectCall`, is modified by NG WhatsApp Gateway patch 🔧¹ (`wwebjs-201832`), which reads the own user id from `getMaybeMePnUser()._serialized` or `$1`. Baileys serves this capability, and its auto-reject stopped the caller's phone at once in a live test the same day.                                                                                                                |
-| `getCatalog`               | lib   | No `Client.getCatalog` in `index.d.ts` (0 hits); `Product`/`Order` are inbound-only parsers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `getProducts`              | lib   | Same as above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `getProduct`               | lib   | Only page-internal `getProductMetadata` (`Utils.js:1290`), not a public Client fn.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `sendProduct`              | lib   | No outbound product content type.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `sendCatalog`              | lib   | No `Client.sendCatalog` in `index.d.ts` (0 hits).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `setGroupEphemeral`        | lib   | No disappearing-timer setter (0 hits for `ephemeral` in `index.d.ts`); only the create-time `messageTimer` option (`Client.js:2328`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `setGroupMemberLabel`      | lib   | No member-label setter (0 hits for `memberLabel` or member tag in `index.d.ts` and `src/`). Baileys relays it with `updateMemberLabel` (`Socket/messages-send.js:274`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `clickButton`              | lib   | No interactive button-reply send path; inbound buttons are not exposable as a clickable Client action. Baileys uses `sendMessage({buttonReply})` / `sendMessage({listReply})` for classic prompts. Native-flow `interactiveMessage` replies are unverified.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `demoteChannelAdmin`       | lib   | `Client.demoteChannelAdmin` exists (`index.d.ts:35`) but its page body calls `window.require('WAWebDemoteNewsletterAdminAction').demoteNewsletterAdmin` (`Client.js:1907-1925`), and a module probe on a live session (Web `2.3000.1044824727-alpha`, unpinned) returned that module resolving with `demoteNewsletterAdmin: undefined`. The sibling path used inside `transferChannelOwnership` (`WAWebNewsletterDemoteAdminJob.demoteNewsletterAdminAction`) is undefined too, so there is nothing to retarget. Baileys serves this capability.                                                                                                                                                                                                            |
+| `transferChannelOwnership` | lib   | `Client.transferChannelOwnership` exists (`index.d.ts:375`) and its page function `WAWebChangeNewsletterOwnerAction.changeNewsletterOwnerAction` is present, but on Web `2.3000.1044824727-alpha` it rejects every call **locally** with `contact-not-found-in-newsletter-subscriber-list` — 4-9ms against a 352-531ms known-server baseline measured in the same page, so it never reaches WhatsApp. Unchanged by subscribing the target, promoting it to admin, or restarting the session; the only repopulation path, `WAWebCollections.NewsletterMetadataCollection.update`, is `undefined`. Baileys serves this capability.                                                                                                                            |
+| `upsertLabel`              | lib   | 1.34.7 reads labels and assigns them (`getLabels`, `getLabelById`, `getChatLabels`, `getChatsByLabelId`, `addOrRemoveLabels`, `index.d.ts:129-154`) but exposes nothing that creates/edits a label definition.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `deleteLabel`              | lib   | Same as above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `subscribeToPresence`      | lib   | Only `sendPresenceAvailable`/`sendPresenceUnavailable` (`index.d.ts:230,233`), which publish the _account's own_ presence; no subscribe call and no presence event is emitted.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `rejectCall`               | lib   | `Call.reject()` exists and is typed `Promise<void>` (`index.d.ts:2417`), but measured live on 2026-09-17 on NG WhatsApp Gateway 0.23.4 with WhatsApp Web `2.3000.1047471845-alpha` the reject resolved and NG WhatsApp Gateway logged the call as auto-rejected while the caller's phone kept ringing until it timed out. The cause is not established. The page function it runs, `WWebJS.rejectCall`, is modified by NG WhatsApp Gateway patch 🔧¹ (`wwebjs-201832`), which reads the own user id from `getMaybeMePnUser()._serialized` or `$1`. Baileys serves this capability, and its auto-reject stopped the caller's phone at once in a live test the same day.                                                                                      |
+| `getCatalog`               | lib   | No `Client.getCatalog` in `index.d.ts` (0 hits); `Product`/`Order` are inbound-only parsers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `getProducts`              | lib   | Same as above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `getProduct`               | lib   | Only page-internal `getProductMetadata` (`Utils.js:1290`), not a public Client fn.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `sendProduct`              | lib   | No outbound product content type.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `sendCatalog`              | lib   | No `Client.sendCatalog` in `index.d.ts` (0 hits).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `setGroupEphemeral`        | lib   | No disappearing-timer setter (0 hits for `ephemeral` in `index.d.ts`); only the create-time `messageTimer` option (`Client.js:2328`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `setGroupMemberLabel`      | lib   | No member-label setter (0 hits for `memberLabel` or member tag in `index.d.ts` and `src/`). Baileys relays it with `updateMemberLabel` (`Socket/messages-send.js:274`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `clickButton`              | lib   | No interactive button-reply send path; inbound buttons are not exposable as a clickable Client action. Baileys uses `sendMessage({buttonReply})` / `sendMessage({listReply})` for classic prompts. Native-flow `interactiveMessage` replies are unverified.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ## 29.7 Caveats on supported rows
 

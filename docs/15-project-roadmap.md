@@ -574,17 +574,17 @@ vars are removed. Ships with a migration guide.
 Delivered additively whenever ready, per SemVer (not gated to one version). Prometheus metrics shipped
 in `0.2.2` and the five client SDKs across `0.7.3`–`0.8.19`; the rest remain open.
 
-| Feature                | Priority | Status                                             | Description                     |
-| ---------------------- | -------- | -------------------------------------------------- | ------------------------------- |
-| JavaScript/Node.js SDK | P1       | ✅ Shipped (`@rmyndharis/openwa`)                  | Official client library         |
-| Python SDK             | P2       | ✅ Shipped (`rmyndharis-openwa`)                   | Python client library           |
-| PHP SDK                | P2       | ✅ Shipped (`rmyndharis/openwa`)                   | PHP client library              |
-| Java SDK               | P2       | ✅ Shipped (`com.rmyndharis:openwa`)               | Java client library             |
+| Feature                | Priority | Status                                                   | Description                     |
+| ---------------------- | -------- | -------------------------------------------------------- | ------------------------------- |
+| JavaScript/Node.js SDK | P1       | ✅ Shipped (`@rmyndharis/openwa`)                        | Official client library         |
+| Python SDK             | P2       | ✅ Shipped (`rmyndharis-openwa`)                         | Python client library           |
+| PHP SDK                | P2       | ✅ Shipped (`rmyndharis/openwa`)                         | PHP client library              |
+| Java SDK               | P2       | ✅ Shipped (`com.rmyndharis:openwa`)                     | Java client library             |
 | Go SDK                 | P2       | ✅ Shipped (`github.com/shyamgade0419/NGwhatsup/sdk/go`) | Go client library               |
-| Postman Collection     | P1       | ◐ cURL collection (doc 07); Postman export TBD     | Ready-to-use API collection     |
-| Docs Site              | P1       | ☐ Open                                             | Documentation website           |
-| Video Tutorials        | P2       | ☐ Open                                             | Getting started video series    |
-| Example Projects       | P1       | ◐ A few under `docs/examples/`                     | Real-world integration examples |
+| Postman Collection     | P1       | ◐ cURL collection (doc 07); Postman export TBD           | Ready-to-use API collection     |
+| Docs Site              | P1       | ☐ Open                                                   | Documentation website           |
+| Video Tutorials        | P2       | ☐ Open                                                   | Getting started video series    |
+| Example Projects       | P1       | ◐ A few under `docs/examples/`                           | Real-world integration examples |
 
 **Performance & Observability**
 

@@ -12,7 +12,7 @@ NG WhatsApp Gateway ships five official, hand-written client libraries for the R
 | Python                  | [`rmyndharis-openwa`](https://pypi.org/project/rmyndharis-openwa/)                     | `pip install rmyndharis-openwa`      | Synchronous (httpx), PEP 561 typed, Python 3.9+                                  |
 | PHP                     | [`rmyndharis/openwa`](https://packagist.org/packages/rmyndharis/openwa)                | `composer require rmyndharis/openwa` | Synchronous (Guzzle 7.9+ or 8), PSR-4, PHP 8.1+                                  |
 | Java                    | [`com.rmyndharis:openwa`](https://central.sonatype.com/artifact/com.rmyndharis/openwa) | Maven Central                        | Sync, `java.net.http`. See [`sdk/java/README.md`](../sdk/java/README.md).        |
-| Go                      | [`github.com/shyamgade0419/NGwhatsup/sdk/go`](../sdk/go)                                     | `go get`                             | Stdlib-only, no third-party deps. See [`sdk/go/README.md`](../sdk/go/README.md). |
+| Go                      | [`github.com/shyamgade0419/NGwhatsup/sdk/go`](../sdk/go)                               | `go get`                             | Stdlib-only, no third-party deps. See [`sdk/go/README.md`](../sdk/go/README.md). |
 
 > The import names differ from the dist names where the ecosystem requires it. Python installs `rmyndharis-openwa` but imports `openwa`; the client class is `OpenWAClient` in JS/Python and `NG WhatsApp Gateway\Client` in PHP.
 
@@ -114,7 +114,7 @@ The constructor takes a single `OpenWAClientOptions` object. `baseUrl` and `apiK
 
 | Option           | Type                     | Required | Default            | Description                                                                                                                                                                                                                     |
 | ---------------- | ------------------------ | -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `baseUrl`        | `string`                 | yes      | —                  | Base URL of the NG WhatsApp Gateway API, e.g. `http://localhost:2785`. A trailing slash is trimmed; a path prefix (e.g. `https://host/v1`) is preserved.                                                                                     |
+| `baseUrl`        | `string`                 | yes      | —                  | Base URL of the NG WhatsApp Gateway API, e.g. `http://localhost:2785`. A trailing slash is trimmed; a path prefix (e.g. `https://host/v1`) is preserved.                                                                        |
 | `apiKey`         | `string`                 | yes      | —                  | API key sent as the `X-API-Key` header on every request. Surrounding whitespace is trimmed; a control or non-Latin-1 character is refused when the client is built.                                                             |
 | `timeoutMs`      | `number`                 | no       | `30000`            | Per-request timeout in milliseconds; `0` or `Infinity` turns it off, and a value that is not a non-negative number throws a `TypeError`. Overridable per call via `RequestOptions.timeoutMs` on the raw `request()` method.     |
 | `defaultHeaders` | `Record<string, string>` | no       | `{}`               | Headers merged onto every request. The `Content-Type: application/json` and `X-API-Key` headers always take precedence. A value with a control or non-Latin-1 character is refused when the client is built, naming the header. |
@@ -1162,12 +1162,12 @@ For installation and node-by-node configuration, see the dedicated [n8n Integrat
 
 The five SDKs are versioned **independently of the gateway** and of each other, each following SemVer. An SDK version does **not** track the gateway version — check the registry for the current one rather than inferring it from the gateway's. Pin the SDK version your code is tested against and treat a major SDK bump as potentially breaking.
 
-| SDK                   | Registry             | Package                               |
-| --------------------- | -------------------- | ------------------------------------- |
-| JavaScript/TypeScript | npm                  | `@rmyndharis/openwa`                  |
-| Python                | PyPI                 | `rmyndharis-openwa`                   |
-| PHP                   | Packagist            | `rmyndharis/openwa`                   |
-| Java                  | Maven Central        | `com.rmyndharis:openwa`               |
+| SDK                   | Registry             | Package                                     |
+| --------------------- | -------------------- | ------------------------------------------- |
+| JavaScript/TypeScript | npm                  | `@rmyndharis/openwa`                        |
+| Python                | PyPI                 | `rmyndharis-openwa`                         |
+| PHP                   | Packagist            | `rmyndharis/openwa`                         |
+| Java                  | Maven Central        | `com.rmyndharis:openwa`                     |
 | Go                    | (none — module path) | `github.com/shyamgade0419/NGwhatsup/sdk/go` |
 
 ### Contract-drift protection
