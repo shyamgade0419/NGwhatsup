@@ -53,9 +53,12 @@ services:
       - PLUGINS_DIR=/app/data/plugins
       - PUPPETEER_HEADLESS=true
       - PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu
-      # Slow first boot of Chromium (2 GB container, cold WhatsApp Web load) can outlast the default 30 s
-      # auth wait, which aborts QR generation ("could not load the QR"). Give it 2 minutes.
-      - WWEBJS_AUTH_TIMEOUT_MS=120000
+      # Baileys engine: talks to WhatsApp over a WebSocket with no Chromium, so starting a session returns
+      # at once and the QR shows in seconds. (whatsapp-web.js needed a full browser boot, which timed out
+      # in a 2 GB container and surfaced in the app as "Network error / Could not start linking".)
+      - ENGINE_TYPE=baileys
+      # Keep the WhatsApp link on the data volume so it survives redeploys.
+      - BAILEYS_AUTH_DIR=/app/data/baileys
       # Gentle on a number that is new to automation: a daily allowance that grows as the session ages.
       - SEND_PACING_ENABLED=true
       # The admin key, fixed here so you know it (it is only read the first time the gateway starts).
