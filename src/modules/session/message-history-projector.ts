@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { Repository, In, Raw } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm';
 import { Message, MessageDirection, MessageStatus } from '../message/entities/message.entity';
-import { buildMessageMetadata, REVOKED_ROW_PATCH } from './message-row.mapper';
+import { buildMessageMetadata, HISTORY_IMPORT_METADATA_KEY, REVOKED_ROW_PATCH } from './message-row.mapper';
 import { mutationTargetsForeignRowPersisted } from './message-mutation-guard';
 import { resolveFeatureFlags } from '../../config/feature-flags';
 import { IncomingMessage } from '../../engine/interfaces/whatsapp-engine.interface';
@@ -76,7 +76,7 @@ export async function persistHistoryMessages(
       })
       .map(x => {
         const m = byId.get(x)!;
-        const metadata = buildMessageMetadata(m, true);
+        const metadata = { ...buildMessageMetadata(m, true), [HISTORY_IMPORT_METADATA_KEY]: true };
         const row = messageRepository.create({
           sessionId: id,
           waMessageId: m.id,

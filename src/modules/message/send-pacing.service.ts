@@ -1,9 +1,10 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { MoreThanOrEqual, Raw, Repository } from 'typeorm';
 import { Message, MessageDirection } from './entities/message.entity';
 import { Session } from '../session/entities/session.entity';
+import { HISTORY_IMPORT_METADATA_KEY } from '../session/message-row.mapper';
 import { resolveSendPacingConfig, type SendPacingConfig } from './send-pacing.config';
 import { incrementSendPacingRefusals, type SendPacingRefusalReason } from '../../common/metrics/send-pacing-metrics';
 import { createLogger } from '../../common/services/logger.service';
@@ -276,7 +277,14 @@ export class SendPacingService {
     const ageDays = Math.floor((dayStart.getTime() - startOfUtcDay(session.createdAt).getTime()) / DAY_MS);
     const allowance = this.allowanceForAge(config.warmupSchedule, ageDays);
     const sentToday = await this.messageRepository.count({
-      where: { sessionId, direction: MessageDirection.OUTGOING, createdAt: MoreThanOrEqual(dayStart) },
+      where: {
+        sessionId,
+        direction: MessageDirection.OUTGOING,
+        createdAt: MoreThanOrEqual(dayStart),
+        // Skip what the link-time history import wrote: a number linked mid-day brings along that day's
+        // earlier sends from the phone, which this gateway never made and which must not spend its allowance.
+        metadata: Raw(alias => `(${alias} IS NULL OR ${alias} NOT LIKE '%"${HISTORY_IMPORT_METADATA_KEY}":true%')`),
+      },
     });
     // A stale count must not reset the new day's held admissions.
     if (startOfUtcDay(new Date()).getTime() !== dayStart.getTime()) {

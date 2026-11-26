@@ -39,6 +39,14 @@ export const OMITTED_MEDIA = { mimetype: '', omitted: true } as const;
  * @returns The metadata object, or undefined when there is nothing to store (the column is nullable
  *   and an empty object would be noise).
  */
+/**
+ * Metadata key stamped on every row the link-time history import writes. Those rows are the account's
+ * past traffic (including what its owner sent from the phone before linking), not sends this gateway made,
+ * so the send pacing day count skips them. A row's createdAt is the original message time, which cannot
+ * tell an imported message of today from a live one.
+ */
+export const HISTORY_IMPORT_METADATA_KEY = 'importedFromHistory';
+
 export function buildMessageMetadata(
   message: Pick<IncomingMessage, 'media' | 'quotedMessage' | 'call' | 'buttons' | 'poll' | 'type'>,
   synthesizeOmittedMedia = false,

@@ -161,6 +161,8 @@ describe('SendPacingService', () => {
       expect(where.sessionId).toBe('s1');
       expect(where.direction).toBe(MessageDirection.OUTGOING);
       expect(where.createdAt).toBeDefined();
+      // Rows the link-time history import wrote are the phone's past traffic, not this gateway's sends.
+      expect(where.metadata).toBeDefined();
     });
 
     // A send for a session with no row is about to fail for a better reason than pacing; the
