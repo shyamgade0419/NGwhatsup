@@ -53,6 +53,9 @@ services:
       - PLUGINS_DIR=/app/data/plugins
       - PUPPETEER_HEADLESS=true
       - PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu
+      # Slow first boot of Chromium (2 GB container, cold WhatsApp Web load) can outlast the default 30 s
+      # auth wait, which aborts QR generation ("could not load the QR"). Give it 2 minutes.
+      - WWEBJS_AUTH_TIMEOUT_MS=120000
       # Gentle on a number that is new to automation: a daily allowance that grows as the session ages.
       - SEND_PACING_ENABLED=true
       # The admin key, fixed here so you know it (it is only read the first time the gateway starts).
